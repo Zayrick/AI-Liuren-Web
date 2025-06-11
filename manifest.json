@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "$schema": "./web-manifest-combined.json",
   "name": "六爻 AI 占卜",
   "short_name": "六爻占卜",
   "start_url": "/index.html",

@@ -27,6 +27,7 @@ const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/web-manifest-combined.json',
   '/icon.png',
   '/service-worker.js'
 ];
