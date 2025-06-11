@@ -1,0 +1,28 @@
+# Node.js 依赖目录
+node_modules/
+
+# 包管理缓存 & 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 环境变量 / 私密配置
+.env
+.env.*
+.dev.vars
+
+# Cloudflare Wrangler 运行时状态文件
+.wrangler/
+
+# 操作系统生成的杂项
+.DS_Store
+Thumbs.db
+
+# IDE / 编辑器配置
+.idea/
+.vscode/
+
+# 临时文件
+*.swp
+*~ 

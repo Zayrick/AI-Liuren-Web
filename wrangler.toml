@@ -1,0 +1,4 @@
+name = "liuyao-ai"
+# 使用当前目录作为 Pages 静态资源输出路径
+pages_build_output_dir = "."
+compatibility_date = "2025-06-11" 

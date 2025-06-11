@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>六爻 AI 占卜</title>
+  <style>
+    body { font-family: sans-serif; max-width: 720px; margin: 40px auto; line-height: 1.6; }
+    input, textarea, button { font-size: 1rem; }
+    form > div { margin-bottom: 1rem; }
+    #output { white-space: pre-wrap; background: #f7f7f7; padding: 1rem; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <h1>六爻 AI 占卜</h1>
+  <form id="divination-form">
+    <div>
+      <label>第 1 个数字：<input type="number" id="n1" required /></label>
+    </div>
+    <div>
+      <label>第 2 个数字：<input type="number" id="n2" required /></label>
+    </div>
+    <div>
+      <label>第 3 个数字：<input type="number" id="n3" required /></label>
+    </div>
+    <div>
+      <label>您想询问的问题：</label><br />
+      <textarea id="question" rows="3" style="width:100%" required></textarea>
+    </div>
+    <div>
+      <label><input type="checkbox" id="reasoning" checked /> 显示 AI 推理过程</label>
+    </div>
+    <button type="submit">开始占卜</button>
+    <button type="button" id="abort" disabled>终止生成</button>
+  </form>
+
+  <h2>结果</h2>
+  <pre id="output">(等待输入...)</pre>
+
+  <script>
+    /**
+     * 向后端 /divination 端点发送占卜请求并以流式方式实时渲染结果。
+     * 使用 Server-Sent Events (SSE) 协议：后端事件类型包含 meta / reasoning / answer。
+     */
+    document.getElementById('divination-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const numbers = [
+        parseInt(document.getElementById('n1').value, 10),
+        parseInt(document.getElementById('n2').value, 10),
+        parseInt(document.getElementById('n3').value, 10)
+      ];
+      const question = document.getElementById('question').value.trim();
+      const show_reasoning = document.getElementById('reasoning').checked;
+
+      const output = document.getElementById('output');
+      output.textContent = '连接服务器，请稍候...';
+
+      try {
+        /** AbortController: 用于随时终止 fetch/SSE */
+        const abortBtn = document.getElementById('abort');
+        const controller = new AbortController();
+        abortBtn.disabled = false;
+        // 点击"终止生成"按钮即调用 abort()
+        const abortListener = () => {
+          controller.abort();
+          abortBtn.disabled = true;
+        };
+        abortBtn.addEventListener('click', abortListener, { once: true });
+
+        const resp = await fetch('/divination', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'text/event-stream' // 请求流式响应
+          },
+          signal: controller.signal,
+          body: JSON.stringify({ numbers, question, show_reasoning })
+        });
+
+        if (!resp.ok || !resp.body) {
+          output.textContent = `请求失败：${resp.status} ${resp.statusText}`;
+          return;
+        }
+
+        // 初始化显示占位区域
+        let metaReceived = false;
+        let reasoningLabelShown = false;
+        let answerLabelShown = false;
+        let reasoningEnabled = show_reasoning;
+
+        const decoder = new TextDecoder('utf-8');
+        const reader = resp.body.getReader();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let boundary;
+          while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+            const rawEvent = buffer.slice(0, boundary).trim();
+            buffer = buffer.slice(boundary + 2);
+
+            const lines = rawEvent.split('\n');
+            let eventType = 'message';
+            const dataParts = [];
+            for (const line of lines) {
+              if (line.startsWith('event:')) {
+                eventType = line.slice(6).trim();
+              } else if (line.startsWith('data:')) {
+                dataParts.push(line.slice(5).replace(/^\s/, ''));
+              }
+            }
+            const dataStr = dataParts.join('\n');
+
+            switch (eventType) {
+              case 'meta': {
+                const meta = JSON.parse(dataStr);
+                output.textContent = `卦象：${meta.hexagram}\n时辰：${meta.time}\n\n`;
+                metaReceived = true;
+                break;
+              }
+              case 'reasoning': {
+                if (!reasoningEnabled) break;
+                if (!reasoningLabelShown) {
+                  output.textContent += '【AI 推理】\n';
+                  reasoningLabelShown = true;
+                }
+                output.textContent += dataStr.replace(/\\n/g, '\n');
+                break;
+              }
+              case 'answer': {
+                if (!answerLabelShown) {
+                  output.textContent += `\n\n【AI 解答】\n`;
+                  answerLabelShown = true;
+                }
+                output.textContent += dataStr.replace(/\\n/g, '\n');
+                break;
+              }
+              case 'error': {
+                output.textContent += `\n\n[错误] ${dataStr}`;
+                break;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          output.textContent += '\n\n[已终止] 用户手动中止生成。';
+        } else {
+          output.textContent = `发生错误：${err}`;
+        }
+      } finally {
+        // 保证按钮状态复原
+        abortBtn.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html> 
