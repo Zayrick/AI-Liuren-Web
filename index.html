@@ -9,6 +9,8 @@
     input, textarea, button { font-size: 1rem; }
     form > div { margin-bottom: 1rem; }
     #output { white-space: pre-wrap; background: #f7f7f7; padding: 1rem; border: 1px solid #ddd; }
+    /* 三个输出框统一样式 */
+    .output-box { white-space: pre-wrap; background: #f7f7f7; padding: 1rem; border: 1px solid #ddd; }
   </style>
 </head>
 <body>
@@ -47,7 +49,20 @@
   </form>
 
   <h2>结果</h2>
-  <pre id="output">(等待输入...)</pre>
+  <div id="results">
+    <div style="margin-bottom:1rem;">
+      <h3>解析卦象</h3>
+      <pre id="output-meta" class="output-box">(等待输入...)</pre>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <h3>思考过程</h3>
+      <pre id="output-reasoning" class="output-box"></pre>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <h3>回答结果</h3>
+      <pre id="output-answer" class="output-box"></pre>
+    </div>
+  </div>
 
   <script>
     /**
@@ -64,8 +79,20 @@
       const question = document.getElementById('question').value.trim();
       const show_reasoning = document.getElementById('reasoning').checked;
 
-      const output = document.getElementById('output');
-      output.textContent = '连接服务器，请稍候...';
+      /**
+       * 三个输出区域元素。
+       *  - output-meta     : 卦象解析
+       *  - output-reasoning: AI 推理过程
+       *  - output-answer   : AI 解答
+       */
+      const metaEl = document.getElementById('output-meta');
+      const reasoningEl = document.getElementById('output-reasoning');
+      const answerEl = document.getElementById('output-answer');
+
+      // 初始化/重置显示内容
+      metaEl.textContent = '连接服务器，请稍候...';
+      reasoningEl.textContent = '';
+      answerEl.textContent = '';
 
       try {
         /** AbortController: 用于随时终止 fetch/SSE */
@@ -104,15 +131,12 @@
         });
 
         if (!resp.ok || !resp.body) {
-          output.textContent = `请求失败：${resp.status} ${resp.statusText}`;
+          metaEl.textContent = `请求失败：${resp.status} ${resp.statusText}`;
           return;
         }
 
-        // 初始化显示占位区域
-        let metaReceived = false;
-        let reasoningLabelShown = false;
-        let answerLabelShown = false;
-        let reasoningEnabled = show_reasoning;
+        // 是否需要展示 AI 推理过程
+        const reasoningEnabled = show_reasoning;
 
         const decoder = new TextDecoder('utf-8');
         const reader = resp.body.getReader();
@@ -142,30 +166,22 @@
 
             switch (eventType) {
               case 'meta': {
+                /** 服务器返回的卦象元信息 */
                 const meta = JSON.parse(dataStr);
-                output.textContent = `卦象：${meta.hexagram}\n时辰：${meta.time}\n\n`;
-                metaReceived = true;
+                metaEl.textContent = `卦象：${meta.hexagram}\n时辰：${meta.time}`;
                 break;
               }
               case 'reasoning': {
                 if (!reasoningEnabled) break;
-                if (!reasoningLabelShown) {
-                  output.textContent += '【AI 推理】\n';
-                  reasoningLabelShown = true;
-                }
-                output.textContent += dataStr.replace(/\\n/g, '\n');
+                reasoningEl.textContent += dataStr.replace(/\\n/g, '\n');
                 break;
               }
               case 'answer': {
-                if (!answerLabelShown) {
-                  output.textContent += `\n\n【AI 解答】\n`;
-                  answerLabelShown = true;
-                }
-                output.textContent += dataStr.replace(/\\n/g, '\n');
+                answerEl.textContent += dataStr.replace(/\\n/g, '\n');
                 break;
               }
               case 'error': {
-                output.textContent += `\n\n[错误] ${dataStr}`;
+                answerEl.textContent += `\n\n[错误] ${dataStr}`;
                 break;
               }
             }
@@ -173,9 +189,9 @@
         }
       } catch (err) {
         if (err.name === 'AbortError') {
-          output.textContent += '\n\n[已终止] 用户手动中止生成。';
+          answerEl.textContent += '\n\n[已终止] 用户手动中止生成。';
         } else {
-          output.textContent = `发生错误：${err}`;
+          answerEl.textContent = `发生错误：${err}`;
         }
       } finally {
         // 保证按钮状态复原
