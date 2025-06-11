@@ -1,0 +1,12 @@
+{
+  "name": "六爻 AI 占卜",
+  "short_name": "六爻占卜",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "theme_color": "#d84c68",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>六爻 AI 占卜</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#d84c68" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="apple-touch-icon" href="/icon.png" />
   <style>
     body { font-family: sans-serif; max-width: 720px; margin: 40px auto; line-height: 1.6; }
     input, textarea, button { font-size: 1rem; }
@@ -201,6 +206,11 @@
 
     // 页面加载时自动填充本地保存的 AI 设置
     window.addEventListener('DOMContentLoaded', () => {
+      // 注册 Service Worker（若浏览器支持）
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js');
+      }
+
       const apiKeyInput = document.getElementById('apiKey');
       const aiModelInput = document.getElementById('aiModel');
       const aiEndpointInput = document.getElementById('aiEndpoint');
