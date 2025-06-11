@@ -132,7 +132,16 @@
             'Accept': 'text/event-stream' // 请求流式响应
           },
           signal: controller.signal,
-          body: JSON.stringify({ numbers, question, show_reasoning, apiKey: api_key, model, endpoint })
+          body: JSON.stringify({
+            numbers,
+            question,
+            show_reasoning,
+            apiKey: api_key,
+            model,
+            endpoint,
+            // 客户端时间信息：时间戳 + 时区偏移，用于后端恢复用户本地时间
+            clientTime: { ts: Date.now(), tz_offset: new Date().getTimezoneOffset() }
+          })
         });
 
         if (!resp.ok || !resp.body) {

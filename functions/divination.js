@@ -116,21 +116,54 @@ function generateHexagram(numbers) {
   return `${words[firstIndex - 1]} ${words[secondIndex - 1]} ${words[thirdIndex - 1]}`;
 }
 
+/**
+ * @brief 根据客户端上传的本地时间信息生成 Date 对象。
+ *
+ * Cloudflare Workers 运行环境固定使用 UTC 时区，这会导致直接调用
+ * `new Date()` 获取到的小时数与用户浏览器看到的不一致。
+ * 为保证卦象推算使用"用户设备时间"作为基准，前端会上传：
+ *   - ts        : `Date.now()` 的毫秒时间戳（UTC 基准）。
+ *   - tz_offset : `Date#getTimezoneOffset()` 的返回值，单位 **分钟**，
+ *                 其含义为 `UTC – Local`。
+ *
+ * 有了上述两项，即可通过
+ *   localDate = new Date(ts - tz_offset * 60_000)
+ * 将时间从 UTC 还原为用户本地时区下的实际时间。
+ *
+ * @param {{ts:number, tz_offset:number}=} clientTime 客户端时间信息，
+ *        若为空或参数非法，则回退至 `new Date()`（Workers 时间）。
+ * @return {Date} 表示用户本地时间的 Date 对象。
+ */
+function resolveClientTime(clientTime) {
+  if (
+    clientTime &&
+    typeof clientTime.ts === "number" &&
+    typeof clientTime.tz_offset === "number" &&
+    Number.isFinite(clientTime.ts) &&
+    Number.isFinite(clientTime.tz_offset)
+  ) {
+    // 转换为用户本地时间
+    return new Date(clientTime.ts - clientTime.tz_offset * 60_000);
+  }
+  // 回退：使用 Workers 运行时时间（UTC）
+  return new Date();
+}
+
 // **************************** 主处理逻辑 ****************************
 /**
- * @brief 以 Server-Sent Events (text/event-stream) 的形式实时推送 AI 推理与解答。
- *
- * @param {Object}   params                 – 参数表。
- * @param {number[]} params.numbers         – 三个数字。
- * @param {string}   params.question        – 用户问题。
- * @param {boolean}  params.showReasoning   – 是否推送推理过程。
- * @param {string}   params.apiKey          – 客户端 API 密钥。
- * @param {string}   params.model           – 客户端模型。
- * @param {string}   params.endpoint        – 客户端端点。
- * @param {Record<string,string>} env       – 环境变量集合。
- * @return {Promise<Response>} 返回可持续推送的 SSE Response。
+ * @brief SSE 流式推送六爻解卦结果（使用用户本地时间）。
+ * @param {Object}  params                 - 请求参数。
+ * @param {number[]} params.numbers        - 三个数字。
+ * @param {string}  params.question        - 用户问题。
+ * @param {boolean} params.showReasoning   - 是否推送推理过程。
+ * @param {string}  params.apiKey          - 前端传递的 API Key。
+ * @param {string}  params.model           - 前端传递的模型名称。
+ * @param {string}  params.endpoint        - 前端传递的 API 端点。
+ * @param {{ts:number,tz_offset:number}=} [params.clientTime] - 用户设备时间信息。
+ * @param {Record<string,string>} env      - Workers 环境变量。
+ * @return {Promise<Response>} SSE Response。
  */
-async function streamDivination({ numbers, question, showReasoning, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint }, env) {
+async function streamDivination({ numbers, question, showReasoning, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint, clientTime }, env) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -139,7 +172,7 @@ async function streamDivination({ numbers, question, showReasoning, apiKey: clie
   (async () => {
     try {
       // ---------- 1. 计算卦象 & 八字 ----------
-      const now = new Date();
+      const now = resolveClientTime(clientTime);
       const fullBazi = `${getYearGanzhi(now)}年 ${getMonthGanzhi(now)}月 ${getDayGanzhi(now)}日 ${getHourGanzhi(now)}时`;
       const hexagram = generateHexagram(numbers);
 
@@ -252,12 +285,12 @@ export async function onRequestPost({ request, env }) {
     } catch {
       return new Response("请求体需为 JSON", { status: 400 });
     }
-    const { numbers, question, show_reasoning = true, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint } = body || {};
+    const { numbers, question, show_reasoning = true, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint, clientTime } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
     // 走流式分支
-    return streamDivination({ numbers, question, showReasoning: show_reasoning, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint }, env);
+    return streamDivination({ numbers, question, showReasoning: show_reasoning, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint, clientTime }, env);
   }
 
   console.log(`[divination] ⏱ 请求开始: ${new Date().toISOString()}`);
@@ -271,14 +304,14 @@ export async function onRequestPost({ request, env }) {
     return new Response("请求体应为 JSON", { status: 400 });
   }
 
-  const { numbers, question, show_reasoning = true, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint } = body || {};
+  const { numbers, question, show_reasoning = true, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint, clientTime } = body || {};
   if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
     console.warn(`[divination] ⚠️ 参数不合法: numbers=${JSON.stringify(numbers)}, question=${question}`);
     return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
   }
 
   // ---------- 2. 计算干支与卦象 ----------
-  const now = new Date();
+  const now = resolveClientTime(clientTime);
   const fullBazi = `${getYearGanzhi(now)}年 ${getMonthGanzhi(now)}月 ${getDayGanzhi(now)}日 ${getHourGanzhi(now)}时`;
   const hexagram = generateHexagram(numbers);
   console.log(`[divination] 🔢 生成卦象: ${hexagram}, 时辰: ${fullBazi}`);
