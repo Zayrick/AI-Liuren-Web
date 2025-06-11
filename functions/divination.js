@@ -124,10 +124,13 @@ function generateHexagram(numbers) {
  * @param {number[]} params.numbers         – 三个数字。
  * @param {string}   params.question        – 用户问题。
  * @param {boolean}  params.showReasoning   – 是否推送推理过程。
+ * @param {string}   params.apiKey          – 客户端 API 密钥。
+ * @param {string}   params.model           – 客户端模型。
+ * @param {string}   params.endpoint        – 客户端端点。
  * @param {Record<string,string>} env       – 环境变量集合。
  * @return {Promise<Response>} 返回可持续推送的 SSE Response。
  */
-async function streamDivination({ numbers, question, showReasoning }, env) {
+async function streamDivination({ numbers, question, showReasoning, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint }, env) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -150,17 +153,27 @@ async function streamDivination({ numbers, question, showReasoning }, env) {
       }
       messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
 
-      const apiKey = env.OPENROUTER_API_KEY;
-      if (!apiKey) throw new Error("未配置 OPENROUTER_API_KEY");
+      // ------------------ 处理客户端/服务端配置 ------------------
+      /**
+       * @brief 统一获取 API 配置。
+       */
+      const apiKey = clientApiKey;
+      if (!apiKey) throw new Error("未配置 apiKey");
 
-      const aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const endpoint = clientEndpoint;
+      if (!endpoint) throw new Error("未配置 endpoint");
+
+      const model = clientModel;
+      if (!model) throw new Error("未配置 model");
+
+      const aiResp = await fetch(endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "anthropic/claude-opus-4",
+          model,
           messages,
           max_tokens: 4096,
           reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
@@ -239,12 +252,12 @@ export async function onRequestPost({ request, env }) {
     } catch {
       return new Response("请求体需为 JSON", { status: 400 });
     }
-    const { numbers, question, show_reasoning = true } = body || {};
+    const { numbers, question, show_reasoning = true, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
     // 走流式分支
-    return streamDivination({ numbers, question, showReasoning: show_reasoning }, env);
+    return streamDivination({ numbers, question, showReasoning: show_reasoning, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint }, env);
   }
 
   console.log(`[divination] ⏱ 请求开始: ${new Date().toISOString()}`);
@@ -258,7 +271,7 @@ export async function onRequestPost({ request, env }) {
     return new Response("请求体应为 JSON", { status: 400 });
   }
 
-  const { numbers, question, show_reasoning = true } = body || {};
+  const { numbers, question, show_reasoning = true, apiKey: clientApiKey, model: clientModel, endpoint: clientEndpoint } = body || {};
   if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
     console.warn(`[divination] ⚠️ 参数不合法: numbers=${JSON.stringify(numbers)}, question=${question}`);
     return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
@@ -284,22 +297,25 @@ export async function onRequestPost({ request, env }) {
   console.log(`[divination] 📨 发送至 AI 的消息: ${JSON.stringify(messages)}`);
 
   // ---------- 4. 调用 OpenRouter AI ----------
-  const apiKey = env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    console.error("[divination] ❌ 未配置 OPENROUTER_API_KEY");
-    return new Response("未配置 OPENROUTER_API_KEY", { status: 500 });
-  }
+  const apiKey = clientApiKey;
+  if (!apiKey) return new Response("未配置 apiKey", { status: 400 });
+
+  const endpoint = clientEndpoint;
+  if (!endpoint) return new Response("未配置 endpoint", { status: 400 });
+
+  const model = clientModel;
+  if (!model) return new Response("未配置 model", { status: 400 });
 
   let aiResp;
   try {
-    aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    aiResp = await fetch(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "anthropic/claude-opus-4",
+        model,
         messages,
         max_tokens: 4096,
         reasoning: show_reasoning ? { max_tokens: 2048 } : undefined,

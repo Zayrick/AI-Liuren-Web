@@ -27,9 +27,21 @@
       <label>您想询问的问题：</label><br />
       <textarea id="question" rows="3" style="width:100%" required></textarea>
     </div>
-    <div>
-      <label><input type="checkbox" id="reasoning" checked /> 显示 AI 推理过程</label>
-    </div>
+    <fieldset style="border:1px solid #ccc;padding:0.8rem;margin-bottom:1rem;">
+      <legend>AI 接口设置（本地存储）</legend>
+      <div style="margin-bottom:0.5rem;">
+        <label>API Key：<input type="password" id="apiKey" style="width:100%" /></label>
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label>模型(model)：<input type="text" id="aiModel" style="width:100%" /></label>
+      </div>
+      <div style="margin-bottom:0.5rem;">
+        <label>请求地址(endpoint)：<input type="text" id="aiEndpoint" style="width:100%" /></label>
+      </div>
+      <div>
+        <label><input type="checkbox" id="reasoning" checked /> 显示 AI 推理过程</label>
+      </div>
+    </fieldset>
     <button type="submit">开始占卜</button>
     <button type="button" id="abort" disabled>终止生成</button>
   </form>
@@ -67,6 +79,20 @@
         };
         abortBtn.addEventListener('click', abortListener, { once: true });
 
+        // 读取 AI 设置并持久化
+        const apiKeyInput = document.getElementById('apiKey');
+        const aiModelInput = document.getElementById('aiModel');
+        const aiEndpointInput = document.getElementById('aiEndpoint');
+
+        const api_key = apiKeyInput.value.trim();
+        const model = aiModelInput.value.trim();
+        const endpoint = aiEndpointInput.value.trim();
+
+        // 将设置写入 localStorage，方便下次自动填充
+        localStorage.setItem('divination_api_key', api_key);
+        localStorage.setItem('divination_ai_model', model);
+        localStorage.setItem('divination_ai_endpoint', endpoint);
+
         const resp = await fetch('/divination', {
           method: 'POST',
           headers: {
@@ -74,7 +100,7 @@
             'Accept': 'text/event-stream' // 请求流式响应
           },
           signal: controller.signal,
-          body: JSON.stringify({ numbers, question, show_reasoning })
+          body: JSON.stringify({ numbers, question, show_reasoning, apiKey: api_key, model, endpoint })
         });
 
         if (!resp.ok || !resp.body) {
@@ -155,6 +181,17 @@
         // 保证按钮状态复原
         abortBtn.disabled = true;
       }
+    });
+
+    // 页面加载时自动填充本地保存的 AI 设置
+    window.addEventListener('DOMContentLoaded', () => {
+      const apiKeyInput = document.getElementById('apiKey');
+      const aiModelInput = document.getElementById('aiModel');
+      const aiEndpointInput = document.getElementById('aiEndpoint');
+
+      apiKeyInput.value = localStorage.getItem('divination_api_key') || '';
+      aiModelInput.value = localStorage.getItem('divination_ai_model') || '';
+      aiEndpointInput.value = localStorage.getItem('divination_ai_endpoint') || '';
     });
   </script>
 </body>
