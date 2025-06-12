@@ -1,6 +1,6 @@
-# 六爻 AI 占卜 – Cloudflare Pages 项目
+# 小六壬 AI 占卜 – Cloudflare Pages 项目
 
-> 利用 Cloudflare Pages Functions + OpenRouter AI 实现的六爻占卜 Web 应用。
+> 利用 Cloudflare Pages Functions + OpenRouter AI 实现的小六壬占卜 Web 应用。
 
 ---
 

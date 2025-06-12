@@ -1,6 +1,6 @@
 /**
  * @file divination.js
- * @brief Cloudflare Pages Function：六爻占卜 + AI 解卦接口。
+ * @brief Cloudflare Pages Function：小六壬占卜 + AI 解卦接口。
  *        前端向此端点发送 POST 请求，携带 `numbers`、`question`、`show_reasoning` 字段。
  *        本函数完成干支与卦象推算，并调用 OpenRouter AI 返回解卦结果。
  *
@@ -570,7 +570,7 @@ function resolveClientTime(clientTime) {
 
 // **************************** 主处理逻辑 ****************************
 /**
- * @brief SSE 流式推送六爻解卦结果（使用用户本地时间）。
+ * @brief SSE 流式推送小六壬解卦结果（使用用户本地时间）。
  * @param {Object}  params                 - 请求参数。
  * @param {number[]} params.numbers        - 三个数字。
  * @param {string}  params.question        - 用户问题。
