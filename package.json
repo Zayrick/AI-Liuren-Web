@@ -1,0 +1,37 @@
+{
+  "name": "liuyao-ai",
+  "version": "1.0.0",
+  "description": "基于 Cloudflare Pages Functions + AI 大模型 的小六壬占卜 Web 应用，并支持离线访问（PWA）。",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "wrangler pages dev . --live-reload",
+    "dev:lan": "wrangler pages dev . --live-reload --ip 0.0.0.0",
+    "deploy": "wrangler pages publish . --project-name liuyao-ai",
+    "start": "npm run dev",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zayrick/AI-Liuren-Web.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zayrick/AI-Liuren-Web/issues"
+  },
+  "homepage": "https://github.com/Zayrick/AI-Liuren-Web#readme",
+  "keywords": [
+    "Cloudflare",
+    "Pages",
+    "Workers",
+    "PWA",
+    "Divination",
+    "AI"
+  ],
+  "author": "Zayrick",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^4.20.0"
+  }
+}
