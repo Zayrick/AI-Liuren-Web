@@ -15,7 +15,7 @@
 // =============================
 
 /** 当前缓存版本。更新资源清单时应同时更新此版本号，触发激活阶段的缓存刷新。 */
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 /** 实际使用的 Cache Storage 名称。*/
 const CACHE_NAME = `liuyao-ai-${CACHE_VERSION}`;
 
@@ -86,22 +86,46 @@ self.addEventListener('fetch', /**
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      // 命中缓存直接返回
+      // ① 命中缓存直接返回
       if (cachedResponse) return cachedResponse;
-      // 未命中则回源并缓存
+
+      // ② 未命中则回源；此处显式处理 3xx Redirect 响应，修复 iOS/Safari "Response served by service worker has redirections" Bug
       return fetch(event.request)
         .then((networkResponse) => {
-          // 若响应非法直接返回
-          if (!networkResponse || networkResponse.status !== 200) {
-            return networkResponse;
+          // ---------- SAFARI BUGFIX BEGIN ----------
+          /**
+           * 若后端返回 301/302/307 等重定向，iOS Safari 在 PWA 窗口下会因 Service Worker 直接向客户端返回
+           * 3xx 响应而报错。此处检测到重定向后，主动发起二次请求跟随至最终资源，再交给浏览器。
+           *
+           * @see https://bugs.webkit.org/show_bug.cgi?id=225083
+           */
+          if (
+            networkResponse &&
+            (networkResponse.redirected || (networkResponse.status >= 300 && networkResponse.status < 400))
+          ) {
+            // 二次请求：使用最终 URL 获取真实资源
+            return fetch(networkResponse.url).then((finalResponse) => {
+              // 避免再次将重定向结果写入缓存
+              if (finalResponse && finalResponse.status === 200) {
+                caches
+                  .open(CACHE_NAME)
+                  .then((cache) => cache.put(event.request, finalResponse.clone()));
+              }
+              return finalResponse;
+            });
           }
-          // 克隆响应流便于后续使用
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          // ---------- SAFARI BUGFIX END ----------
+
+          // ③ 常规 200 响应：写入缓存后返回
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+
           return networkResponse;
         })
         .catch(() => {
-          // 网络请求失败（离线）时，可返回离线占位页或静态资源；此处简单返回404。
+          // ④ 网络离线且未缓存：返回占位响应
           return new Response('离线状态，且资源未缓存。', { status: 404 });
         });
     })
