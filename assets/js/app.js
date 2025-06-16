@@ -192,7 +192,13 @@
           switch (eventType) {
             case 'meta': {
               const meta = JSON.parse(dataStr);
-              metaEl.textContent = `卦象：${meta.hexagram}\n时辰：${meta.time}`;
+              /*
+               * 在卦象解析中显示更完整的信息：
+               *  1) 所问之事：question
+               *  2) 所得之卦：hexagram
+               *  3) 所占之时：fullBazi
+               */
+              metaEl.textContent = `所问之事：${question}\n所得之卦：${meta.hexagram}\n所占之时：${meta.time}`;
               clearLoading(metaEl);
               break;
             }

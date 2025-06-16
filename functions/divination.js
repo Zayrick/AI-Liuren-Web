@@ -77,7 +77,11 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
       const hexagram = generateHexagram(numbers);
 
       // ---------- 2️⃣ meta 事件 ----------
-      await writer.write(encoder.encode(`event: meta\ndata: ${JSON.stringify({ hexagram, time: fullBazi })}\n\n`));
+      await writer.write(
+        encoder.encode(
+          `event: meta\ndata: ${JSON.stringify({ question, hexagram, time: fullBazi })}\n\n`
+        )
+      );
 
       // ---------- 3️⃣ 组装 AI 请求 ----------
       /** @type {{role:string, content:string}[]} */
