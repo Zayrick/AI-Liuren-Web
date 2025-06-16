@@ -4,7 +4,6 @@ compatibility_date = "2025-06-11"
 
 # 环境变量（示例）
 [vars]
-# 配置你的AI API相关环境变量
 # API_KEY = ""
 # MODEL = ""
 # ENDPOINT = ""
