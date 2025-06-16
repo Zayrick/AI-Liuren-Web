@@ -1,7 +1,7 @@
 {
-  "name": "liuyao-ai",
+  "name": "ai-api-proxy",
   "version": "1.0.0",
-  "description": "基于 Cloudflare Pages Functions + AI 大模型 的小六壬占卜 Web 应用，并支持离线访问（PWA）。",
+  "description": "基于 Cloudflare Pages Functions 的通用 AI API 转发代理工具，支持原样转发请求到各种AI供应商。",
   "type": "module",
   "engines": {
     "node": ">=18"
@@ -9,25 +9,26 @@
   "scripts": {
     "dev": "wrangler pages dev . --live-reload",
     "dev:lan": "wrangler pages dev . --live-reload --ip 0.0.0.0",
-    "deploy": "wrangler pages publish . --project-name liuyao-ai",
+    "deploy": "wrangler pages publish . --project-name ai-api-proxy",
     "start": "npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Zayrick/AI-Liuren-Web.git"
+    "url": "git+https://github.com/Zayrick/AI-API-Proxy.git"
   },
   "bugs": {
-    "url": "https://github.com/Zayrick/AI-Liuren-Web/issues"
+    "url": "https://github.com/Zayrick/AI-API-Proxy/issues"
   },
-  "homepage": "https://github.com/Zayrick/AI-Liuren-Web#readme",
+  "homepage": "https://github.com/Zayrick/AI-API-Proxy#readme",
   "keywords": [
     "Cloudflare",
     "Pages",
     "Workers",
-    "PWA",
-    "Divination",
-    "AI"
+    "AI",
+    "API",
+    "Proxy",
+    "OpenAI"
   ],
   "author": "Zayrick",
   "license": "MIT",

@@ -179,3 +179,145 @@ wrangler pages publish . --project-name <YOUR_PROJECT_NAME>
 ---
 
 🎉 欢迎 Issue / PR，与我们共同完善小六壬 AI 占卜！ 
+
+# AI API 转发代理工具
+
+基于 Cloudflare Pages Functions 的通用 AI API 转发代理工具，支持原样转发请求到各种AI供应商。
+
+## 特性
+
+- ✅ 通用AI API转发，支持原样透传请求
+- ✅ 支持流式和非流式响应
+- ✅ 支持CORS跨域请求
+- ✅ 支持多种AI供应商（OpenAI、Claude、Gemini等）
+- ✅ 无需系统提示词，完全透明转发
+- ✅ 支持环境变量和请求参数混合配置
+- ✅ 详细的错误处理和响应
+
+## 部署说明
+
+### 1. 环境变量配置
+
+在 Cloudflare Pages 项目中设置以下环境变量：
+
+```bash
+# 必填：AI API密钥
+API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxx
+
+# 可选：默认模型名称
+MODEL=gpt-4o
+
+# 可选：默认API端点
+ENDPOINT=https://api.openai.com/v1/chat/completions
+```
+
+### 2. 部署到 Cloudflare Pages
+
+```bash
+# 安装依赖
+npm install
+
+# 本地开发
+npm run dev
+
+# 部署到生产环境
+npm run deploy
+```
+
+## API 使用说明
+
+### 端点
+
+- `GET /api` - 获取API文档
+- `POST /api` - 转发AI API请求
+- `OPTIONS /api` - CORS预检请求
+
+### 请求示例
+
+#### 非流式请求
+
+```bash
+curl -X POST https://your-domain.pages.dev/api \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Hello, how are you?"}
+    ],
+    "model": "gpt-4o",
+    "stream": false
+  }'
+```
+
+#### 流式请求
+
+```bash
+curl -X POST https://your-domain.pages.dev/api \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Tell me a story"}
+    ],
+    "model": "gpt-4o", 
+    "stream": true
+  }'
+```
+
+#### 自定义API配置
+
+```bash
+curl -X POST https://your-domain.pages.dev/api \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Hello"}
+    ],
+    "model": "claude-3-sonnet-20240229",
+    "stream": false,
+    "apiKey": "your-custom-api-key",
+    "endpoint": "https://api.anthropic.com/v1/messages"
+  }'
+```
+
+### 请求参数
+
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `messages` | Array | ✅ | 对话消息数组 |
+| `model` | String | ❌ | AI模型名称 |
+| `stream` | Boolean | ❌ | 是否使用流式响应（默认false） |
+| `apiKey` | String | ❌ | API密钥（覆盖环境变量） |
+| `endpoint` | String | ❌ | API端点（覆盖环境变量） |
+| `...其他参数` | Any | ❌ | 会原样转发给AI供应商 |
+
+### 响应格式
+
+工具会原样返回AI供应商的响应，不做任何修改或处理。
+
+#### 错误响应
+
+```json
+{
+  "error": "错误描述信息"
+}
+```
+
+## 支持的AI供应商
+
+理论上支持所有兼容OpenAI API格式的AI供应商，包括但不限于：
+
+- OpenAI (GPT-4, GPT-3.5等)
+- Anthropic Claude
+- Google Gemini
+- 各种国产大模型API
+- 自建模型API
+
+## 安全说明
+
+- 支持通过环境变量配置默认的API密钥和端点
+- 支持在请求中临时覆盖配置
+- 所有请求都会原样转发，不记录或修改内容
+- 建议在生产环境中限制访问来源
+
+## 许可证
+
+MIT License 

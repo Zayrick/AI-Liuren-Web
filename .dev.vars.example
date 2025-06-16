@@ -1,6 +1,3 @@
-
-SYSTEM_PROMPT=你是一位精通小六壬的占卜师
-
 # AI API Key（必填，用于调用大模型服务）
 API_KEY=sk-xxxxxxx
 
@@ -8,4 +5,4 @@ API_KEY=sk-xxxxxxx
 MODEL=gpt-4o
 
 # AI API 端点，若使用官方服务保持默认即可
-ENDPOINT=https://<AI-API>/
+ENDPOINT=https://api.openai.com/v1/chat/completions
