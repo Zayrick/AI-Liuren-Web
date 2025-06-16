@@ -36,6 +36,24 @@ import {
 // ********************************************************
 
 /**
+ * @brief 构造仅包含白名单字段的安全 Headers
+ * @details 只允许 Authorization、Content-Type 两个字段，过滤 cf-*、x-forwarded-for、true-client-ip 等可能暴露访客隐私的请求头。
+ * @param {HeadersInit} init - 初始 Header 集合
+ * @return {Headers} 过滤后的 Headers
+ */
+function buildSafeHeaders(init = {}) {
+  const whitelist = new Set(["authorization", "content-type"]);
+  const source = new Headers(init);
+  const safe = new Headers();
+  for (const [key, value] of source) {
+    if (whitelist.has(key.toLowerCase())) {
+      safe.append(key, value);
+    }
+  }
+  return safe;
+}
+
+/**
  * @brief SSE 流式推送小六壬解卦结果
  * @param {StreamDivinationParams} params - 业务参数
  * @param {Record<string,string>}   env    - Cloudflare 环境变量
@@ -81,10 +99,10 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
       // ---------- 4️⃣ 调用 AI API (SSE) ----------
       const aiResp = await fetch(usedEndpoint, {
         method: "POST",
-        headers: {
+        headers: buildSafeHeaders({
           Authorization: `Bearer ${usedApiKey}`,
           "Content-Type": "application/json"
-        },
+        }),
         body: JSON.stringify({
           model: usedModel,
           messages,
@@ -234,10 +252,10 @@ async function handleDivinationAPI(request, env) {
     // 调用 AI API
     const aiResp = await fetch(usedEndpoint, {
       method: "POST",
-      headers: {
+      headers: buildSafeHeaders({
         Authorization: `Bearer ${usedApiKey}`,
         "Content-Type": "application/json"
-      },
+      }),
       body: JSON.stringify({
         model: usedModel,
         messages,
