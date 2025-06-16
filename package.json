@@ -7,9 +7,9 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "wrangler pages dev . --live-reload",
-    "dev:lan": "wrangler pages dev . --live-reload --ip 0.0.0.0",
-    "deploy": "wrangler pages publish . --project-name liuyao-ai",
+    "dev": "wrangler dev",
+    "dev:lan": "wrangler dev --ip 0.0.0.0",
+    "deploy": "wrangler deploy",
     "start": "npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
