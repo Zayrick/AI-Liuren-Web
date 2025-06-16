@@ -134,7 +134,7 @@
     localStorage.setItem('divination_ai_endpoint', endpoint);
 
     try {
-      const resp = await fetch('/divination', {
+      const resp = await fetch('/api/divination', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
