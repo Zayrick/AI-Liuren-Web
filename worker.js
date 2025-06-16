@@ -1,7 +1,7 @@
 /**
  * @file worker.js
  * @brief Cloudflare Worker 入口。
- * @details 该 Worker 仅处理 `/api/divination` POST/SSE 请求，其余请求返回 404。
+ * @details 该 Worker 处理 `/api/divination` POST/SSE 请求，同时托管静态资源。
  *          业务逻辑完全复用原 Cloudflare Pages Function `functions/divination.js`，
  *          避免重复实现。
  *
@@ -16,6 +16,48 @@
 import { onRequestPost as handleDivinationPost } from "./functions/divination.js";
 
 /**
+ * @brief 获取静态文件内容
+ * @param {string} path - 文件路径
+ * @return {Promise<Response|null>} 文件响应或 null
+ */
+async function getStaticFile(path) {
+  // 静态文件映射（这里需要手动列出所有需要的文件）
+  const staticFiles = {
+    '/': 'index.html',
+    '/index.html': 'index.html',
+    '/manifest.json': 'manifest.json',
+    '/web-manifest-combined.json': 'web-manifest-combined.json',
+    '/service-worker.js': 'service-worker.js',
+    '/icon.png': 'icon.png'
+  };
+
+  const filePath = staticFiles[path];
+  if (!filePath) return null;
+
+  try {
+    // 动态导入文件内容（需要将静态文件转换为 JS 模块）
+    const fileModule = await import(`./${filePath}.js`);
+    const content = fileModule.default;
+    
+    // 根据文件类型设置 Content-Type
+    let contentType = 'text/plain';
+    if (filePath.endsWith('.html')) contentType = 'text/html; charset=utf-8';
+    else if (filePath.endsWith('.json')) contentType = 'application/json; charset=utf-8';
+    else if (filePath.endsWith('.js')) contentType = 'application/javascript; charset=utf-8';
+    else if (filePath.endsWith('.png')) contentType = 'image/png';
+
+    return new Response(content, {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600'
+      }
+    });
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
  * @brief Worker fetch 事件处理器。
  * @param {Request}                    request - HTTP 请求对象。
  * @param {Record<string,string>}      env     - 绑定的环境变量。
@@ -25,12 +67,33 @@ import { onRequestPost as handleDivinationPost } from "./functions/divination.js
 async function fetchHandler(request, env, ctx) {
   const url = new URL(request.url);
 
-  // 仅处理占卜接口
+  // 处理占卜接口
   if (url.pathname === "/api/divination" && request.method === "POST") {
     return handleDivinationPost({ request, env });
   }
 
-  // 其它路径统一返回 404，或按需自定义静态资源逻辑
+  // 处理静态文件
+  const staticResponse = await getStaticFile(url.pathname);
+  if (staticResponse) {
+    return staticResponse;
+  }
+
+  // 处理 assets 目录下的文件
+  if (url.pathname.startsWith('/assets/')) {
+    // 尝试返回一个简单的 CSS 或 JS 内容
+    if (url.pathname === '/assets/css/style.css') {
+      return new Response('/* CSS content would go here */', {
+        headers: { 'Content-Type': 'text/css' }
+      });
+    }
+    if (url.pathname === '/assets/js/app.js') {
+      return new Response('// JS content would go here', {
+        headers: { 'Content-Type': 'application/javascript' }
+      });
+    }
+  }
+
+  // 其它路径返回 404
   return new Response("Not Found", { status: 404 });
 }
 
