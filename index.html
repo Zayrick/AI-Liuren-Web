@@ -485,12 +485,8 @@
 
         clearLoading(metaEl);
 
-        const reasoningEnabled = show_reasoning;
-        if (!reasoningEnabled) {
-          reasoningEl.parentElement.style.display = 'none';
-        } else {
-          reasoningEl.parentElement.style.display = 'block';
-        }
+        // 初始隐藏推理过程框，待真正接收到 reasoning 事件且用户允许时再显示
+        reasoningEl.parentElement.style.display = 'none';
 
         const decoder = new TextDecoder('utf-8');
         const reader = resp.body.getReader();
@@ -526,11 +522,17 @@
                 break;
               }
               case 'reasoning': {
-                if (!reasoningEnabled) break;
-                if (reasoningEl.classList.contains('loading')) {
+                // 动态判断用户当前是否允许显示推理过程
+                const allowReasoning = document.getElementById('reasoning').checked;
+                if (!allowReasoning) break;
+
+                // 首次接收到 reasoning 时再展示
+                if (reasoningEl.parentElement.style.display === 'none') {
+                  reasoningEl.parentElement.style.display = 'block';
                   clearLoading(reasoningEl);
                   reasoningEl.textContent = '';
                 }
+
                 reasoningEl.textContent += dataStr.replace(/\\n/g, '\n');
                 break;
               }
@@ -572,6 +574,21 @@
       apiKeyInput.value = localStorage.getItem('divination_api_key') || '';
       aiModelInput.value = localStorage.getItem('divination_ai_model') || '';
       aiEndpointInput.value = localStorage.getItem('divination_ai_endpoint') || '';
+
+      // 默认隐藏推理过程结果框
+      const reasoningEl = document.getElementById('output-reasoning');
+      reasoningEl.parentElement.style.display = 'none';
+
+      // 监听复选框切换，实时控制推理框显示 / 隐藏
+      const reasoningCheckbox = document.getElementById('reasoning');
+      reasoningCheckbox.addEventListener('change', () => {
+        if (!reasoningCheckbox.checked) {
+          reasoningEl.parentElement.style.display = 'none';
+        } else if (reasoningEl.textContent.trim()) {
+          // 若已有推理内容且重新开启，立即展示
+          reasoningEl.parentElement.style.display = 'block';
+        }
+      });
     });
   </script>
   </body>

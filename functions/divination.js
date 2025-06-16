@@ -12,7 +12,7 @@
  *            "show_reasoning": true,
  *            "apiKey": "...",
  *            "model": "gpt-4o",
- *            "endpoint": "https://openrouter.ai/v1/chat/completions",
+ *            "endpoint": "https://<AI-API>/",
  *            "clientTime": {"ts": 1718511692000, "tz_offset": -480}
  *          }
  *
@@ -35,7 +35,7 @@ import {
  * @property {number[]} numbers            - 三个数字。
  * @property {string}   question           - 占卜问题。
  * @property {boolean}  showReasoning      - 是否推送 AI 推理过程。
- * @property {string}   apiKey             - OpenRouter API Key。
+ * @property {string}   apiKey             - AI API Key。
  * @property {string}   model              - 模型名称。
  * @property {string}   endpoint           - API 端点。
  * @property {import("../lib/time.js").ClientTime=} clientTime - 客户端时间信息。
@@ -59,6 +59,18 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
   // 在后台执行，尽快返回可读流供浏览器建立连接
   (async () => {
     try {
+      // === 新增：统一判定前端是否覆写 AI 连接信息 ===
+      // 若前端提供了任意一项（API Key / Model / Endpoint），则全部采用前端值，
+      // 否则完整回退至环境变量，避免混用导致超额费用。
+      const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
+      const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
+      const usedModel    = overrideProvided ? model    : env.MODEL;
+      const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
+
+      if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
+        throw new Error("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint");
+      }
+
       // ---------- 1️⃣ 计算卦象 & 八字 ----------
       const now = resolveClientTime(clientTime);
       const fullBazi = `${getYearGanzhi(now)}年 ${getMonthGanzhi(now)}月 ${getDayGanzhi(now)}日 ${getHourGanzhi(now)}时`;
@@ -75,15 +87,15 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
       }
       messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
 
-      // ---------- 4️⃣ 调用 OpenRouter (SSE) ----------
-      const aiResp = await fetch(endpoint, {
+      // ---------- 4️⃣ 调用 AI API (SSE) ----------
+      const aiResp = await fetch(usedEndpoint, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${usedApiKey}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model,
+          model: usedModel,
           messages,
           max_tokens: 4096,
           reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
@@ -172,6 +184,18 @@ export async function onRequestPost({ request, env }) {
     return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
   }
 
+  // === 新增：统一判定前端是否覆写 AI 连接信息 ===
+  // 若前端提供了任意一项（API Key / Model / Endpoint），则全部采用前端值，
+  // 否则完整回退至环境变量，避免混用导致超额费用。
+  const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
+  const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
+  const usedModel    = overrideProvided ? model    : env.MODEL;
+  const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
+
+  if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
+    return new Response("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint", { status: 400 });
+  }
+
   // 计算八字 & 卦象
   const now = resolveClientTime(clientTime);
   const fullBazi = `${getYearGanzhi(now)}年 ${getMonthGanzhi(now)}月 ${getDayGanzhi(now)}日 ${getHourGanzhi(now)}时`;
@@ -186,14 +210,14 @@ export async function onRequestPost({ request, env }) {
   // 调用 AI
   let aiResp;
   try {
-    aiResp = await fetch(endpoint, {
+    aiResp = await fetch(usedEndpoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${usedApiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model,
+        model: usedModel,
         messages,
         max_tokens: 4096,
         reasoning: show_reasoning ? { max_tokens: 2048 } : undefined,
