@@ -1,0 +1,53 @@
+# 依赖和构建产物
+node_modules/
+.npm/
+.yarn/
+.pnpm/
+package-lock.json
+
+# Git和版本控制
+.git/
+.gitignore
+
+# 开发工具
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 日志文件
+*.log
+logs/
+
+# 环境配置
+.env*
+.dev.vars
+
+# Wrangler缓存
+.wrangler/
+
+# 原始Pages Functions（已迁移到Worker）
+functions/
+
+# 文档和说明
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.lock
+
+# 其他不需要的文件
+*.bak
+*.orig
+*.rej 

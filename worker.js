@@ -327,13 +327,8 @@ export default {
     // 静态资产服务
     try {
       // 处理根路径，重定向到 index.html
-      let assetPath = pathname === '/' ? '/index.html' : pathname;
+      let assetPath = pathname === '/' ? 'index.html' : pathname.slice(1);
       
-      // 移除开头的斜杠
-      if (assetPath.startsWith('/')) {
-        assetPath = assetPath.slice(1);
-      }
-
       // 尝试获取静态资产
       const asset = await env.ASSETS.fetch(new Request(`${url.origin}/${assetPath}`));
       
