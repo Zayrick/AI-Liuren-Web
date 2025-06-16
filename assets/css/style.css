@@ -52,29 +52,26 @@ body {
 
 .card {
   background: var(--secondary);
-  border: 1px solid var(--border-glass);
   border-radius: var(--radius);
-  padding: 2rem;
+  padding: 1rem;
   box-shadow: var(--shadow);
 }
 
 .header {
   grid-column: 1 / -1;
   text-align: center;
-  margin-bottom: 1rem;
 }
 
 .header h1 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
 }
 
 .form-section h2,
 .results-section h2 {
   font-size: 1.25rem;
   font-weight: 500;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.6rem;
   opacity: 0.9;
 }
 
