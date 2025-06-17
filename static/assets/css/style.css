@@ -192,9 +192,9 @@ body {
   }
   
   .form-section {
-    padding: 1rem 1.2rem 0.5rem 1.2rem !important;
+    padding: 1rem 1.2rem !important;
     /* 添加安全区域适配，兼容有刘海的设备 */
-    /* padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important; */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
   }
   
   .number-input input {
