@@ -118,6 +118,7 @@
     const switchToStopState = () => {
       toggleBtn.textContent = '停止';
       toggleBtn.type = 'button';
+      toggleBtn.setAttribute('type', 'button');
       toggleBtn.classList.remove('btn-primary');
       toggleBtn.classList.add('btn-secondary');
       toggleBtn.disabled = false;
@@ -129,6 +130,7 @@
     const switchToStartState = () => {
       toggleBtn.textContent = '开始占卜';
       toggleBtn.type = 'submit';
+      toggleBtn.setAttribute('type', 'submit');
       toggleBtn.classList.remove('btn-secondary');
       toggleBtn.classList.add('btn-primary');
       toggleBtn.disabled = false;
@@ -137,7 +139,8 @@
     // 切换为停止状态，并绑定一次性停止处理器
     switchToStopState();
 
-    const stopHandler = () => {
+    const stopHandler = (evt) => {
+      evt.preventDefault();
       controller.abort();
       toggleBtn.disabled = true;
     };
@@ -285,12 +288,6 @@
     // 注册 Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js');
-    }
-
-    // 防止缓存：自动附加时间戳
-    if (!window.location.search.includes('_t=')) {
-      const sep = window.location.search ? '&' : '?';
-      window.location.href = `${window.location.href}${sep}_t=${Date.now()}`;
     }
   }
 
