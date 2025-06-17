@@ -46,10 +46,20 @@ body {
     padding-bottom: 0; /* 移动端底部无padding，为固定输入框让路 */
   }
   .container {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    display: block; /* 移动端不使用grid布局 */
+    max-width: none; /* 移除最大宽度限制 */
+    margin: 0; /* 移除居中设置 */
     padding-bottom: 120px; /* 为底部固定输入框预留空间 */
     min-height: calc(100vh - 2rem);
+  }
+  
+  /* 移动端各section的间距 */
+  .header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .results-section {
+    margin-bottom: 1.5rem;
   }
   
   /**

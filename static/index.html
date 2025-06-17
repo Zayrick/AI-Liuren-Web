@@ -22,26 +22,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="/icon.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <script src="/assets/js/app.js" defer></script>
+  <link rel="stylesheet" href="./assets/css/style.css">
+  <script src="./assets/js/app.js" defer></script>
 </head>
 
 <body>
   <div class="container">
     <!-- 标题 -->
     <header class="header card">
-      <h1>小六壬 AI 占卜</h1>
+      <h1>AI小六壬</h1>
     </header>
 
     <!-- 输入区域 -->
     <section class="card form-section">
-      <h2>输入信息</h2>
-
       <form id="divination-form">
 
         <!-- 问题输入 -->
         <div class="form-group">
-          <label>您的问题</label>
           <textarea id="question" class="question-textarea" required placeholder="请描述您想要占卜的问题..."></textarea>
         </div>
 
@@ -73,11 +70,13 @@
             <input type="password" id="apiKey" class="ai-input" placeholder="API Key">
             <input type="text" id="aiModel" class="ai-input" placeholder="模型 (例: gpt-4)">
             <input type="text" id="aiEndpoint" class="ai-input" placeholder="API 端点">
-            <div class="checkbox-group">
-              <input type="checkbox" id="reasoning" class="checkbox" checked>
-              <label for="reasoning">显示推理过程</label>
-            </div>
           </div>
+        </div>
+
+        <!-- 推理开关：始终可见 -->
+        <div class="checkbox-group" style="margin-bottom: 1rem;">
+          <input type="checkbox" id="reasoning" class="checkbox" checked>
+          <label for="reasoning">显示推理过程</label>
         </div>
 
         <!-- 按钮 -->
