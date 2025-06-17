@@ -70,7 +70,16 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
       // === 统一判定前端是否覆写 AI 连接信息 ===
       const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
       const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
-      const usedModel    = overrideProvided ? model    : env.MODEL;
+      let usedModel;
+      if (overrideProvided) {
+        usedModel = model;
+      } else {
+        /**
+         * 当用户未设置 API，而前端请求要求展示推理过程时，
+         * 默认切换至后台配置的 REASONING_MODEL（若存在），否则回退至 MODEL。
+         */
+        usedModel = showReasoning && env.REASONING_MODEL ? env.REASONING_MODEL : env.MODEL;
+      }
       const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
 
       if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
@@ -229,7 +238,12 @@ async function handleDivinationAPI(request, env) {
   // === 统一判定前端是否覆写 AI 连接信息 ===
   const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
   const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
-  const usedModel    = overrideProvided ? model    : env.MODEL;
+  let usedModel;
+  if (overrideProvided) {
+    usedModel = model;
+  } else {
+    usedModel = show_reasoning && env.REASONING_MODEL ? env.REASONING_MODEL : env.MODEL;
+  }
   const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
 
   if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {

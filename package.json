@@ -7,11 +7,13 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "wrangler dev --local",
-    "dev:remote": "wrangler dev",
+    "dev": "npm run update-cache-version && wrangler dev",
+    "dev:remote": "npm run update-cache-version && wrangler dev --ip=0.0.0.0",
     "deploy": "wrangler deploy",
     "start": "npm run dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "update-cache-version": "node scripts/update-sw-cache-version.js",
+    "build": "npm run update-cache-version && wrangler publish"
   },
   "repository": {
     "type": "git",
