@@ -188,11 +188,11 @@ body {
    * @note 确保在所有移动设备上都有良好的体验
    */
   .container {
-    padding-bottom: 140px; /* 更多空间给小屏设备 */
+    padding-bottom: 170px; /* 更多空间给小屏设备 */
   }
   
   .form-section {
-    padding: 1rem 0.75rem !important;
+    padding: 1rem 1.2rem !important;
     /* 添加安全区域适配，兼容有刘海的设备 */
     padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
   }
@@ -222,17 +222,11 @@ body {
 @media (max-width: 768px) {
   /* 防止内容被固定输入框遮挡的滚动容器 */
   .results-section {
-    max-height: calc(100vh - 180px);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
   }
   
-  /* 输入焦点时的额外样式 */
-  .form-section input:focus,
-  .form-section textarea:focus {
-    transform: scale(1.02);
-    transition: transform 0.2s ease;
-  }
+
   
   /* 优化按钮的触摸体验 */
   .btn {
@@ -262,11 +256,9 @@ body {
 
 .question-textarea {
   width: 100%;
-  min-height: 100px;
-  padding: 1rem;
-  font-size: 0.875rem;
-  background: var(--primary);
-  border: 1px solid var(--border-glass);
+  font-size: 16px;
+  background: var(--secondary);
+  border: 0px;
   border-radius: 8px;
   color: var(--text-white);
   resize: vertical;
@@ -276,8 +268,8 @@ body {
 
 .question-textarea:focus {
   outline: none;
-  border-color: var(--accent);
-  background: var(--primary);
+  border-color: var(--secondary);
+  background: var(--secondary);
 }
 
 .question-textarea::placeholder {
@@ -516,8 +508,8 @@ body {
  */
 .action-row .number-inputs {
   display: flex;
-  gap: 0.5rem;
-  margin: 0 0.75rem 0 0; /* 右侧留空隙，与后续按钮间隔 */
+  gap: 0.1rem;
+  margin: 0 0.5rem 0 0; /* 右侧留空隙，与后续按钮间隔 */
 }
 
 /**
