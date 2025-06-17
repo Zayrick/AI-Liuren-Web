@@ -1,22 +1,23 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>小六 AI 占卜</title>
-  
+
   <!-- 移动端体验优化 -->
   <meta name="format-detection" content="telephone=no" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  
+
   <!-- 禁用缓存 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  
+
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#667eea" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="/icon.png" />
@@ -24,6 +25,7 @@
   <link rel="stylesheet" href="/assets/css/style.css">
   <script src="/assets/js/app.js" defer></script>
 </head>
+
 <body>
   <div class="container">
     <!-- 标题 -->
@@ -34,8 +36,15 @@
     <!-- 输入区域 -->
     <section class="card form-section">
       <h2>输入信息</h2>
-      
+
       <form id="divination-form">
+
+        <!-- 问题输入 -->
+        <div class="form-group">
+          <label>您的问题</label>
+          <textarea id="question" class="question-textarea" required placeholder="请描述您想要占卜的问题..."></textarea>
+        </div>
+
         <!-- 数字输入 -->
         <div class="form-group">
           <label>三个数字 (1-999)</label>
@@ -52,18 +61,12 @@
           </div>
         </div>
 
-        <!-- 问题输入 -->
-        <div class="form-group">
-          <label>您的问题</label>
-          <textarea id="question" class="question-textarea" required placeholder="请描述您想要占卜的问题..."></textarea>
-        </div>
-
         <!-- AI设置 -->
         <div class="ai-settings">
           <div class="ai-settings-header" id="ai-settings-header">
             <span>AI 设置</span>
             <svg class="chevron" id="chevron" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
             </svg>
           </div>
           <div class="ai-settings-content" id="ai-settings-content">
@@ -87,7 +90,7 @@
     <!-- 结果区域 -->
     <section class="card results-section">
       <h2>占卜结果</h2>
-      
+
       <div id="results">
         <div class="result-item">
           <div class="result-title">卦象解析</div>
@@ -107,4 +110,5 @@
     </section>
   </div>
 </body>
-</html> 
+
+</html>
