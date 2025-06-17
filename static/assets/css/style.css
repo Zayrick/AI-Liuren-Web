@@ -75,6 +75,7 @@ body {
     margin: 0 !important;
     border-radius: 16px 16px 0 0 !important;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25) !important;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-bottom: none !important;
   }
@@ -204,6 +205,7 @@ body {
   /* 键盘弹出时的视觉优化 */
   .form-section:focus-within {
     box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.4) !important;
+    -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
   }
 }
@@ -345,6 +347,45 @@ body {
   border-color: var(--text-white);
 }
 
+/**
+ * @brief 推理过程切换按钮样式
+ * @note 支持激活/非激活状态，激活时为蓝色，非激活时为原始灰色
+ */
+.reasoning-toggle-container {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.reasoning-toggle-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border-glass);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--secondary);
+  color: var(--text-white);
+  font-family: inherit;
+  margin-right: auto;
+}
+
+.reasoning-toggle-btn:hover {
+  opacity: 0.8;
+}
+
+.reasoning-toggle-btn.active {
+  background: #3b82f6; /* 蓝色背景表示激活状态 */
+  border-color: #3b82f6;
+  color: white;
+}
+
+.reasoning-toggle-btn:not(.active) {
+  background: var(--secondary);
+  border-color: var(--border-glass);
+  color: var(--text-white);
+}
+
 .btn-group {
   display: flex;
   gap: 1rem;
@@ -359,6 +400,18 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/**
+ * @brief Material Icons 图标样式
+ * @note 确保按钮中的图标正确显示和对齐
+ */
+.btn .material-symbols-rounded {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
 }
 
 .btn-primary {
@@ -425,4 +478,29 @@ body {
 
 .chevron.rotated {
   transform: rotate(180deg);
-} 
+}
+
+/**
+ * @brief 推理与操作行布局
+ */
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/**
+ * @brief 小圆形图标按钮（开始/停止）
+ */
+.icon-btn {
+  flex: 0 0 auto;
+  width: 1.875rem;
+  height: 1.875rem;
+  padding: 0;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+}
+
+#ai-settings-toggle {
+  border: none;
+}

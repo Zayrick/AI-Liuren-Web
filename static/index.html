@@ -22,6 +22,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="apple-touch-icon" href="/icon.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <link rel="stylesheet" href="./assets/css/style.css">
   <script src="./assets/js/app.js" defer></script>
 </head>
@@ -59,12 +60,9 @@
         </div>
 
         <!-- AI设置 -->
-        <div class="ai-settings">
+        <div class="ai-settings" style="display:none;">
           <div class="ai-settings-header" id="ai-settings-header">
             <span>AI 设置</span>
-            <svg class="chevron" id="chevron" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z" />
-            </svg>
           </div>
           <div class="ai-settings-content" id="ai-settings-content">
             <input type="password" id="apiKey" class="ai-input" placeholder="API Key">
@@ -73,15 +71,17 @@
           </div>
         </div>
 
-        <!-- 推理开关：始终可见 -->
-        <div class="checkbox-group" style="margin-bottom: 1rem;">
-          <input type="checkbox" id="reasoning" class="checkbox" checked>
-          <label for="reasoning">显示推理过程</label>
-        </div>
-
-        <!-- 按钮 -->
-        <div class="btn-group">
-          <button type="submit" id="toggle-btn" class="btn btn-primary">开始占卜</button>
+        <!-- 推理与操作行：始终可见 -->
+        <div class="action-row" style="margin-bottom: 1rem;">
+          <button type="button" id="reasoning-toggle" class="reasoning-toggle-btn" data-active="false">
+            深度思考
+          </button>
+          <button type="button" id="ai-settings-toggle" class="btn icon-btn btn-secondary" style="margin-left:0.5rem;">
+            <span class="material-symbols-rounded">settings</span>
+          </button>
+          <button type="submit" id="toggle-btn" class="btn icon-btn btn-primary">
+            <span class="material-symbols-rounded">arrow_upward</span>
+          </button>
         </div>
       </form>
     </section>

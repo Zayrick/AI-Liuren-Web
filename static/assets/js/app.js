@@ -34,19 +34,26 @@
   }
 
   /**
-   * 切换 AI 设置面板展开/收起。
-   * @param {MouseEvent} [evt] 点击事件对象
+   * 切换 AI 设置面板显示/隐藏。
+   * 由右侧齿轮按钮触发：展开时显示整个容器，折叠时完全隐藏。
+   * @param {MouseEvent} [evt]
    */
   function toggleAiSettings(evt) {
+    const container = document.querySelector('.ai-settings');
     const content = document.getElementById('ai-settings-content');
     const chevron = document.getElementById('chevron');
-    const isActive = content.classList.contains('active');
-    if (isActive) {
-      content.classList.remove('active');
-      chevron.classList.remove('rotated');
-    } else {
+
+    const isHidden = container.style.display === 'none' || getComputedStyle(container).display === 'none';
+    if (isHidden) {
+      // 展开：显示容器并激活内容
+      container.style.display = 'block';
       content.classList.add('active');
       chevron.classList.add('rotated');
+    } else {
+      // 折叠：隐藏容器并关闭内容
+      container.style.display = 'none';
+      content.classList.remove('active');
+      chevron.classList.remove('rotated');
     }
   }
 
@@ -68,18 +75,40 @@
   }
 
   /**
-   * Reasoning 复选框切换事件处理。
+   * Reasoning 按钮切换事件处理。
    * @param {Event} e 事件对象
    * @private
    */
-  function onReasoningSwitch(e) {
-    const checkbox = /** @type {HTMLInputElement} */ (e.target);
+  function onReasoningToggle(e) {
+    /** @type {HTMLButtonElement} */
+    const button = e.target;
     const reasoningEl = document.getElementById('output-reasoning');
-    if (!checkbox.checked) {
+    
+    // 切换按钮状态
+    const isActive = button.getAttribute('data-active') === 'true';
+    if (isActive) {
+      // 当前是激活状态，点击后变为非激活
+      button.setAttribute('data-active', 'false');
+      button.classList.remove('active');
       reasoningEl.parentElement.style.display = 'none';
-    } else if (reasoningEl.textContent.trim()) {
-      reasoningEl.parentElement.style.display = 'block';
+    } else {
+      // 当前是非激活状态，点击后变为激活
+      button.setAttribute('data-active', 'true');
+      button.classList.add('active');
+      if (reasoningEl.textContent.trim()) {
+        reasoningEl.parentElement.style.display = 'block';
+      }
     }
+  }
+
+  /**
+   * 获取推理开关的状态。
+   * @returns {boolean} 是否显示推理过程
+   * @private
+   */
+  function isReasoningEnabled() {
+    const button = document.getElementById('reasoning-toggle');
+    return button.getAttribute('data-active') === 'true';
   }
 
   /**
@@ -96,7 +125,7 @@
       parseInt(document.getElementById('n3').value, 10)
     ];
     const question = document.getElementById('question').value.trim();
-    const showReasoning = document.getElementById('reasoning').checked;
+    const showReasoning = isReasoningEnabled();
 
     const metaEl = document.getElementById('output-meta');
     const reasoningEl = document.getElementById('output-reasoning');
@@ -116,7 +145,7 @@
      * 将按钮状态切换为"停止"。
      */
     const switchToStopState = () => {
-      toggleBtn.textContent = '停止';
+      toggleBtn.innerHTML = '<span class="material-symbols-rounded">stop</span>';
       toggleBtn.type = 'button';
       toggleBtn.setAttribute('type', 'button');
       toggleBtn.classList.remove('btn-primary');
@@ -128,7 +157,7 @@
      * 将按钮状态切换回"开始占卜"。
      */
     const switchToStartState = () => {
-      toggleBtn.textContent = '开始占卜';
+      toggleBtn.innerHTML = '<span class="material-symbols-rounded">arrow_upward</span>';
       toggleBtn.type = 'submit';
       toggleBtn.setAttribute('type', 'submit');
       toggleBtn.classList.remove('btn-secondary');
@@ -230,7 +259,7 @@
               break;
             }
             case 'reasoning': {
-              if (!document.getElementById('reasoning').checked) break;
+              if (!isReasoningEnabled()) break;
 
               if (reasoningEl.parentElement.style.display === 'none') {
                 reasoningEl.parentElement.style.display = 'block';
@@ -275,9 +304,9 @@
    */
   function init() {
     // 绑定事件
-    document.getElementById('ai-settings-header').addEventListener('click', toggleAiSettings);
+    document.getElementById('ai-settings-toggle').addEventListener('click', toggleAiSettings);
     document.getElementById('divination-form').addEventListener('submit', onSubmit);
-    document.getElementById('reasoning').addEventListener('change', onReasoningSwitch);
+    document.getElementById('reasoning-toggle').addEventListener('click', onReasoningToggle);
 
     // 初始化配置
     loadLocalSettings();
@@ -289,6 +318,10 @@
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/service-worker.js');
     }
+
+    // 禁用旧的 AI 设置标题点击指针样式
+    const headerEl = document.getElementById('ai-settings-header');
+    headerEl.style.cursor = 'default';
   }
 
   document.addEventListener('DOMContentLoaded', init);
