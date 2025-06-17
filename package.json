@@ -7,8 +7,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "wrangler dev --local",
-    "dev:remote": "wrangler dev",
+    "dev": "wrangler dev",
+    "dev:remote": "wrangler dev --ip=0.0.0.0",
     "deploy": "wrangler deploy",
     "start": "npm run dev",
     "test": "echo \"Error: no test specified\" && exit 1"

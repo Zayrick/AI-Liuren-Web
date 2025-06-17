@@ -43,10 +43,78 @@ body {
 @media (max-width: 768px) {
   body {
     padding: 1rem;
+    padding-bottom: 0; /* 移动端底部无padding，为固定输入框让路 */
   }
   .container {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+    padding-bottom: 120px; /* 为底部固定输入框预留空间 */
+    min-height: calc(100vh - 2rem);
+  }
+  
+  /**
+   * @brief 移动端输入表单固定在底部的样式
+   * @note 类似Telegram聊天输入框的设计
+   */
+  .form-section {
+    position: fixed !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    margin: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: none !important;
+  }
+  
+  /* 输入表单内部样式调整 */
+  .form-section h2 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    opacity: 0.8;
+  }
+  
+  /* 数字输入框在移动端的优化 */
+  .number-inputs {
+    margin-bottom: 1rem;
+  }
+  
+  .number-input input {
+    height: 45px;
+    font-size: 1rem;
+    border-radius: 12px;
+  }
+  
+  /* 问题输入框优化 */
+  .question-textarea {
+    min-height: 80px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+  }
+  
+  /* AI设置在移动端收起状态 */
+  .ai-settings {
+    margin-bottom: 1rem;
+    border-radius: 12px;
+  }
+  
+  /* 按钮组优化 */
+  .btn-group {
+    gap: 0.75rem;
+  }
+  
+  .btn {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+  }
+  
+  /* 结果区域在移动端的调整 */
+  .results-section {
+    margin-bottom: 1rem;
   }
 }
 
@@ -97,6 +165,62 @@ body {
   .number-inputs {
     grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
+  }
+  
+  /**
+   * @brief 超小屏幕设备的额外优化
+   * @note 确保在所有移动设备上都有良好的体验
+   */
+  .container {
+    padding-bottom: 140px; /* 更多空间给小屏设备 */
+  }
+  
+  .form-section {
+    padding: 1rem 0.75rem !important;
+    /* 添加安全区域适配，兼容有刘海的设备 */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+  
+  .number-input input {
+    height: 42px;
+    font-size: 0.95rem;
+  }
+  
+  .question-textarea {
+    min-height: 70px;
+    font-size: 0.85rem;
+  }
+  
+  /* 键盘弹出时的视觉优化 */
+  .form-section:focus-within {
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(15px);
+  }
+}
+
+/**
+ * @brief 移动端专用的滚动优化
+ * @note 确保内容区域能够正常滚动，不被固定输入框遮挡
+ */
+@media (max-width: 768px) {
+  /* 防止内容被固定输入框遮挡的滚动容器 */
+  .results-section {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
+  }
+  
+  /* 输入焦点时的额外样式 */
+  .form-section input:focus,
+  .form-section textarea:focus {
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
+  }
+  
+  /* 优化按钮的触摸体验 */
+  .btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
 
