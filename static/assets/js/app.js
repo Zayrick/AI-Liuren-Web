@@ -106,18 +106,42 @@
     showLoading(reasoningEl, '等待');
     showLoading(answerEl, '等待');
 
-    const abortBtn = document.getElementById('abort');
-    const controller = new AbortController();
-    abortBtn.disabled = false;
+    /** @type {HTMLButtonElement} 单一开始/停止按钮 */
+    const toggleBtn = document.getElementById('toggle-btn');
 
-    abortBtn.addEventListener(
-      'click',
-      () => {
-        controller.abort();
-        abortBtn.disabled = true;
-      },
-      { once: true }
-    );
+    // 初始化 AbortController 用于随时中断请求
+    const controller = new AbortController();
+
+    /**
+     * 将按钮状态切换为"停止"。
+     */
+    const switchToStopState = () => {
+      toggleBtn.textContent = '停止';
+      toggleBtn.type = 'button';
+      toggleBtn.classList.remove('btn-primary');
+      toggleBtn.classList.add('btn-secondary');
+      toggleBtn.disabled = false;
+    };
+
+    /**
+     * 将按钮状态切换回"开始占卜"。
+     */
+    const switchToStartState = () => {
+      toggleBtn.textContent = '开始占卜';
+      toggleBtn.type = 'submit';
+      toggleBtn.classList.remove('btn-secondary');
+      toggleBtn.classList.add('btn-primary');
+      toggleBtn.disabled = false;
+    };
+
+    // 切换为停止状态，并绑定一次性停止处理器
+    switchToStopState();
+
+    const stopHandler = () => {
+      controller.abort();
+      toggleBtn.disabled = true;
+    };
+    toggleBtn.addEventListener('click', stopHandler, { once: true });
 
     // 读取用户配置
     const apiKeyInput = document.getElementById('apiKey');
@@ -237,7 +261,9 @@
         answerEl.textContent = `错误：${err}`;
       }
     } finally {
-      abortBtn.disabled = true;
+      // 无论正常结束、错误或手动中止，均恢复按钮至"开始占卜"状态
+      toggleBtn.removeEventListener('click', stopHandler);
+      switchToStartState();
     }
   }
 

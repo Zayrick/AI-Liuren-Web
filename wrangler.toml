@@ -2,12 +2,12 @@ name = "liuyao-ai"
 main = "worker.js"
 compatibility_date = "2025-06-11"
 
-# 环境变量（示例）
+# 环境变量
 [vars]
 # API_KEY = ""
-# MODEL = ""
-# ENDPOINT = ""
-# SYSTEM_PROMPT = ""
+MODEL = "deepseek/deepseek-chat-v3-0324"
+ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+SYSTEM_PROMPT = ""
 
 # 静态资产配置
 [assets]
