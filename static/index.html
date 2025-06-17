@@ -43,22 +43,6 @@
           <textarea id="question" class="question-textarea" required placeholder="请描述您想要占卜的问题..."></textarea>
         </div>
 
-        <!-- 数字输入 -->
-        <div class="form-group">
-          <label>三个数字 (1-999)</label>
-          <div class="number-inputs">
-            <div class="number-input">
-              <input type="number" id="n1" min="1" max="999" required placeholder="第一数">
-            </div>
-            <div class="number-input">
-              <input type="number" id="n2" min="1" max="999" required placeholder="第二数">
-            </div>
-            <div class="number-input">
-              <input type="number" id="n3" min="1" max="999" required placeholder="第三数">
-            </div>
-          </div>
-        </div>
-
         <!-- AI设置 -->
         <div class="ai-settings" style="display:none;">
           <div class="ai-settings-header" id="ai-settings-header">
@@ -73,6 +57,17 @@
 
         <!-- 推理与操作行：始终可见 -->
         <div class="action-row" style="margin-bottom: 1rem;">
+          <div class="number-inputs">
+            <div class="number-input">
+              <input type="number" id="n1" min="1" max="999" required placeholder="一">
+            </div>
+            <div class="number-input">
+              <input type="number" id="n2" min="1" max="999" required placeholder="二">
+            </div>
+            <div class="number-input">
+              <input type="number" id="n3" min="1" max="999" required placeholder="三">
+            </div>
+          </div>
           <button type="button" id="reasoning-toggle" class="reasoning-toggle-btn" data-active="false">
             深度思考
           </button>
