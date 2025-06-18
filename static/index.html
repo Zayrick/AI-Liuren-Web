@@ -83,22 +83,20 @@
     </section>
 
     <!-- 结果区域 -->
-    <section class="card results-section">
-      <h2>占卜结果</h2>
-
+    <section class="card results-section" style="padding: 0; background-color: transparent">
       <div id="results">
         <div class="result-item">
-          <div class="result-title">卦象解析</div>
-          <div id="output-meta" class="result-content loading">等待输入...</div>
+          <!-- <div id="output-meta" class="result-content loading">等待输入...</div> -->
+          <div id="output-meta" class="result-content loading"></div>
         </div>
+      </hr>
 
-        <div class="result-item">
+        <div class="result-item" style="margin: 0;">
           <div class="result-title">思考过程</div>
           <div id="output-reasoning" class="result-content"></div>
         </div>
 
         <div class="result-item">
-          <div class="result-title">占卜结果</div>
           <div id="output-answer" class="result-content"></div>
         </div>
       </div>
