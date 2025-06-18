@@ -4,7 +4,7 @@
   "short_name": "小六壬占卜",
   "start_url": "/index.html",
   "display": "standalone",
-  "theme_color": "#d84c68",
+  "theme_color": "#1f2937",
   "background_color": "#ffffff",
   "icons": [
     { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
