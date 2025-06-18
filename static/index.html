@@ -91,9 +91,18 @@
         </div>
       </hr>
 
-        <div class="result-item" style="margin: 0;">
-          <div class="result-title">思考过程</div>
-          <div id="output-reasoning" class="result-content"></div>
+        <div class="result-item reasoning-section">
+          <div class="reasoning-header" id="reasoning-header">
+            <span class="reasoning-title" id="reasoning-title">思考过程</span>
+            <button type="button" class="reasoning-collapse-btn" id="reasoning-collapse-btn">
+              <span class="material-symbols-rounded">expand_more</span>
+            </button>
+          </div>
+          <div class="reasoning-content-wrapper" id="reasoning-content-wrapper">
+            <div class="reasoning-content-box">
+              <div id="output-reasoning" class="result-content"></div>
+            </div>
+          </div>
         </div>
 
         <div class="result-item">

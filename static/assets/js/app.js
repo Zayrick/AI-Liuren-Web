@@ -216,7 +216,7 @@
       clearLoading(metaEl);
 
       // 初始隐藏推理面板，只有在收到事件后且用户仍允许时再展示
-      reasoningEl.parentElement.style.display = 'none';
+      reasoningEl.parentElement.parentElement.parentElement.style.display = 'none';
 
       const decoder = new TextDecoder('utf-8');
       const reader = resp.body.getReader();
@@ -261,16 +261,25 @@
             case 'reasoning': {
               if (!isReasoningEnabled()) break;
 
-              if (reasoningEl.parentElement.style.display === 'none') {
-                reasoningEl.parentElement.style.display = 'block';
+              if (reasoningEl.parentElement.parentElement.parentElement.style.display === 'none') {
+                reasoningEl.parentElement.parentElement.parentElement.style.display = 'block';
                 clearLoading(reasoningEl);
                 reasoningEl.textContent = '';
+                updateReasoningTitle('thinking');
+                // 确保思考过程展开显示
+                document.querySelector('.reasoning-section').classList.remove('collapsed');
               }
               reasoningEl.textContent += dataStr.replace(/\\n/g, '\n');
               break;
             }
             case 'answer': {
               if (answerEl.classList.contains('loading')) {
+                // 首次进入 answer 流，标记思考完成并可自动折叠
+                if (isReasoningEnabled() && reasoningEl.textContent.trim()) {
+                  updateReasoningTitle('completed');
+                  autoCollapseReasoning();
+                }
+
                 clearLoading(answerEl);
                 answerEl.textContent = '';
               }
@@ -307,12 +316,20 @@
     document.getElementById('ai-settings-toggle').addEventListener('click', toggleAiSettings);
     document.getElementById('divination-form').addEventListener('submit', onSubmit);
     document.getElementById('reasoning-toggle').addEventListener('click', onReasoningToggle);
+    document.getElementById('reasoning-header').addEventListener('click', toggleReasoningCollapse);
+    document.getElementById('reasoning-collapse-btn').addEventListener('click', (e) => {
+      e.stopPropagation(); // 防止触发标题栏点击事件
+      toggleReasoningCollapse();
+    });
 
     // 初始化配置
     loadLocalSettings();
 
     // 默认隐藏推理过程容器
-    document.getElementById('output-reasoning').parentElement.style.display = 'none';
+    document.getElementById('output-reasoning').parentElement.parentElement.parentElement.style.display = 'none';
+    
+    // 确保思考过程默认展开状态
+    document.querySelector('.reasoning-section').classList.remove('collapsed');
 
     // 注册 Service Worker
     if ('serviceWorker' in navigator) {
@@ -322,6 +339,54 @@
     // 禁用旧的 AI 设置标题点击指针样式
     const headerEl = document.getElementById('ai-settings-header');
     headerEl.style.cursor = 'default';
+  }
+
+  /**
+   * 切换思考过程的折叠状态。
+   * @private
+   */
+  function toggleReasoningCollapse() {
+    const reasoningSection = document.querySelector('.reasoning-section');
+    const isCollapsed = reasoningSection.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+      reasoningSection.classList.remove('collapsed');
+    } else {
+      reasoningSection.classList.add('collapsed');
+    }
+  }
+
+  /**
+   * 更新思考过程标题文案。
+   * @param {string} status 状态：'thinking' | 'completed'
+   * @private
+   */
+  function updateReasoningTitle(status) {
+    const titleEl = document.getElementById('reasoning-title');
+    const titleClasses = titleEl.classList;
+    
+    // 清除之前的状态类
+    titleClasses.remove('reasoning-thinking', 'reasoning-completed');
+    
+    if (status === 'thinking') {
+      titleEl.textContent = '思考中';
+      titleClasses.add('reasoning-thinking');
+    } else if (status === 'completed') {
+      titleEl.textContent = '思考完成';
+      titleClasses.add('reasoning-completed');
+    }
+  }
+
+  /**
+   * 自动折叠思考过程（仅在思考完成后调用）。
+   * @private
+   */
+  function autoCollapseReasoning() {
+    const reasoningSection = document.querySelector('.reasoning-section');
+    // 延迟1秒后自动折叠，给用户时间看到"思考完成"状态
+    setTimeout(() => {
+      reasoningSection.classList.add('collapsed');
+    }, 1000);
   }
 
   document.addEventListener('DOMContentLoaded', init);
