@@ -226,6 +226,8 @@ body {
     box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.4) !important;
     -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
+    /* 键盘弹出时去除安全区域，只保留 0.5rem 间距 */
+    padding-bottom: 0.5rem !important;
   }
 }
 
