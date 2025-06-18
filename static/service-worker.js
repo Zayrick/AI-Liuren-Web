@@ -15,7 +15,7 @@
 // =============================
 
 /** 当前缓存版本。更新资源清单时应同时更新此版本号，触发激活阶段的缓存刷新。 */
-const CACHE_VERSION = 'vmc1qi5ps';
+const CACHE_VERSION = 'v2024-safari-fix';
 /** 实际使用的 Cache Storage 名称。*/
 const CACHE_NAME = `liuyao-ai-${CACHE_VERSION}`;
 
@@ -101,25 +101,46 @@ self.addEventListener('fetch', /**
            */
           if (
             networkResponse &&
-            (networkResponse.redirected || (networkResponse.status >= 300 && networkResponse.status < 400))
+            (networkResponse.redirected || 
+             (networkResponse.status >= 300 && networkResponse.status < 400) ||
+             networkResponse.type === 'opaqueredirect')
           ) {
-            // 二次请求：使用最终 URL 获取真实资源
-            return fetch(networkResponse.url).then((finalResponse) => {
-              // 避免再次将重定向结果写入缓存
-              if (finalResponse && finalResponse.status === 200) {
-                caches
-                  .open(CACHE_NAME)
-                  .then((cache) => cache.put(event.request, finalResponse.clone()));
+            // 获取最终目标URL，优先使用networkResponse.url，回退到Location header
+            let finalUrl = networkResponse.url;
+            if (!finalUrl || finalUrl === event.request.url) {
+              const locationHeader = networkResponse.headers.get('location');
+              if (locationHeader) {
+                finalUrl = new URL(locationHeader, event.request.url).href;
               }
-              return finalResponse;
-            });
+            }
+
+            // 如果获取到有效的目标URL，发起二次请求
+            if (finalUrl && finalUrl !== event.request.url) {
+              return fetch(finalUrl, {
+                method: 'GET',
+                credentials: event.request.credentials,
+                cache: 'no-cache'
+              }).then((finalResponse) => {
+                // 避免再次将重定向结果写入缓存，只缓存最终的200响应
+                if (finalResponse && finalResponse.status === 200 && finalResponse.type !== 'opaque') {
+                  caches
+                    .open(CACHE_NAME)
+                    .then((cache) => cache.put(event.request, finalResponse.clone()))
+                    .catch(() => {}); // 忽略缓存错误
+                }
+                return finalResponse;
+              }).catch(() => {
+                // 如果二次请求失败，尝试返回原始响应
+                return networkResponse;
+              });
+            }
           }
           // ---------- SAFARI BUGFIX END ----------
 
           // ③ 常规 200 响应：写入缓存后返回
-          if (networkResponse && networkResponse.status === 200) {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type !== 'opaque') {
             const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone)).catch(() => {});
           }
 
           return networkResponse;

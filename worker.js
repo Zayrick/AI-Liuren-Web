@@ -358,7 +358,7 @@ export default {
 
     // 静态资产服务
     try {
-      // 处理根路径，重定向到 index.html
+      // 处理根路径，直接映射到 index.html（避免重定向）
       let assetPath = pathname === '/' ? 'index.html' : pathname.slice(1);
       
       // 尝试获取静态资产

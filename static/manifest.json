@@ -2,7 +2,7 @@
   "$schema": "./web-manifest-combined.json",
   "name": "小六壬 AI 占卜",
   "short_name": "小六壬占卜",
-  "start_url": "/index.html",
+  "start_url": "/",
   "display": "standalone",
   "theme_color": "#1f2937",
   "background_color": "#ffffff",
