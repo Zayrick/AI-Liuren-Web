@@ -555,10 +555,6 @@ body {
   user-select: none;
 }
 
-.reasoning-header:hover {
-  background: var(--accent);
-}
-
 /* 思考过程标题文字 */
 .reasoning-title {
   font-size: 0.875rem;
@@ -579,10 +575,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.reasoning-collapse-btn:hover {
-  background: var(--primary);
 }
 
 .reasoning-collapse-btn .material-symbols-rounded {
