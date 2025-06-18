@@ -57,15 +57,68 @@ body {
     display: block; /* 移动端不使用grid布局 */
     max-width: none; /* 移除最大宽度限制 */
     margin: 0; /* 移除居中设置 */
+    padding-top: 64px; /* 为顶部固定标题预留空间 */
     padding-bottom: 120px; /* 为底部固定输入框预留空间 */
     min-height: calc(100vh - 2rem);
   }
   
   /* 移动端各section的间距 */
+  /**
+   * @brief 移动端固定标题样式
+   * @details 采用与底部固定输入框相同的策略，使"AI小六壬"标题在滚动时保持可见。
+   * @note 添加边缘渐变模糊效果，营造更自然的视觉层次感
+   */
   .header {
-    margin-bottom: 1.5rem;
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    margin: 0 !important;
+    border-radius: 0 0 0 0 !important;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    background: none !important;
+    box-shadow: none !important;
+    
+    /* 边缘渐变模糊效果 */
+    mask: linear-gradient(
+      to bottom,
+      rgba(0,0,0,1) 0%,
+      rgba(0,0,0,1) 60%,
+      rgba(0,0,0,0.8) 80%,
+      rgba(0,0,0,0.4) 95%,
+      rgba(0,0,0,0) 100%
+    );
+    -webkit-mask: linear-gradient(
+      to bottom,
+      rgba(0,0,0,1) 0%,
+      rgba(0,0,0,1) 60%,
+      rgba(0,0,0,0.8) 80%,
+      rgba(0,0,0,0.4) 95%,
+      rgba(0,0,0,0) 100%
+    );
+    
+    /* 增强磨砂效果的背景支撑 */
   }
   
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(31, 41, 55, 0.3) 0%,
+      rgba(31, 41, 55, 0.15) 70%,
+      rgba(31, 41, 55, 0.05) 90%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
   .results-section {
     margin-bottom: 1.5rem;
   }
@@ -150,8 +203,8 @@ body {
 }
 
 .header h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .form-section h2,
