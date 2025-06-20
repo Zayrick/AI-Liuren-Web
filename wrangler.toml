@@ -10,7 +10,7 @@ compatibility_date = "2025-06-11"
 #   MODEL="deepseek/deepseek-chat-v3-0324"
 [vars]
 REASONING_MODEL = "google/gemini-2.5-flash-lite-preview-06-17"
-MODEL = "google/gemini-2.5-flash-lite-preview-06-17"
+MODEL = "deepseek/deepseek-chat-v3-0324"
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 # API_KEY = ""
 # SYSTEM_PROMPT = "你是一位精通小六壬的占卜师"
