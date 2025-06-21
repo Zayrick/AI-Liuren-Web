@@ -9,7 +9,7 @@ compatibility_date = "2025-06-11"
 #   API_KEY="your-local-api-key"
 #   MODEL="deepseek/deepseek-chat-v3-0324"
 [vars]
-REASONING_MODEL = "google/gemini-2.5-flash"
+REASONING_MODEL = "anthropic/claude-sonnet-4"
 MODEL = "deepseek/deepseek-chat-v3-0324"
 ENDPOINT = "https://gateway.ai.cloudflare.com/v1/9ce9598718c27c7441e2818185c1dbfa/openrouter/openrouter/v1/chat/completions"
 # API_KEY = ""
