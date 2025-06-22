@@ -427,6 +427,7 @@ body {
 .result-item__content ol {
   padding-left: 1.5em;
   margin-bottom: 1em;
+  list-style-position: inside;
 }
 
 .result-item__content li {

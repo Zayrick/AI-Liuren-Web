@@ -320,6 +320,9 @@
           }
         }
       }
+
+      // 在流式输出结束后，自动将内容滚动到底部，确保用户能看到完整结果
+      scrollToBottom(answerEl);
     } catch (err) {
       if (err.name === 'AbortError') {
         answerEl.textContent += '\n\n[已停止] 用户中止生成';
@@ -330,6 +333,20 @@
       // 无论正常结束、错误或手动中止，均恢复按钮至"开始占卜"状态
       toggleBtn.removeEventListener('click', stopHandler);
       switchToStartState();
+    }
+  }
+
+  /**
+   * 平滑地将容器内最后一个元素滚动到视野中。
+   * @param {HTMLElement} containerEl 包含内容的父容器元素。
+   */
+  function scrollToBottom(containerEl) {
+    if (containerEl && containerEl.lastElementChild) {
+      // 使用平滑滚动，并确保其在块级布局的末尾对齐
+      containerEl.lastElementChild.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end'
+      });
     }
   }
 
@@ -437,9 +454,10 @@
         const headerHeight = pageHeader.getBoundingClientRect().height;
         const inputAreaHeight = inputArea.getBoundingClientRect().height;
 
-        // 为上下都增加 1rem 的舒适间距
-        pageContent.style.paddingTop = `calc(${headerHeight}px + 1rem)`;
-        pageContent.style.paddingBottom = `calc(${inputAreaHeight}px + 1rem)`;
+        // 顶部内边距为页头高度，底部内边距为输入区域高度
+        // 不再添加额外的 1rem，以实现精确对齐
+        pageContent.style.paddingTop = `${headerHeight}px`;
+        pageContent.style.paddingBottom = `${inputAreaHeight}px`;
       } else {
         // 桌面端恢复默认值
         pageContent.style.paddingTop = '';
