@@ -354,18 +354,20 @@ body {
 }
 
 .reasoning-box__content-wrapper {
-  max-height: 1000px; /* 默认展开 */
-  overflow: hidden;
-  transition: max-height 0.3s ease-in-out;
+  /* 使用 Grid 动画替代 max-height，实现更优雅的折叠效果 */
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s ease-in-out;
 }
 
 .reasoning-section.collapsed .reasoning-box__content-wrapper {
-  max-height: 0;
+  grid-template-rows: 0fr;
 }
 
 .reasoning-box__content {
   font-size: 0.8rem; /* 思考内容使用更小的字号 */
   line-height: 1.6;
+  overflow: hidden; /* 防止内容在动画过程中溢出，破坏布局 */
 }
 
 /* 思考过程区域 - 旧样式清理 */
