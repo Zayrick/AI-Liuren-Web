@@ -104,6 +104,19 @@
   }
 
   /**
+   * 修复不符合 GFM 规范的 Markdown 标题。
+   * marked.js 遵循的 GFM 规范要求 # 和标题文本之间必须有空格。
+   * 此函数为缺失空格的标题（如 ###标题）自动添加空格。
+   * @param {string} markdown
+   * @returns {string}
+   */
+  function fixMarkdownHeadings(markdown) {
+    // 使用正则表达式在 # 和标题文本之间插入空格
+    // m flag: multiline mode, ^ matches start of line
+    return markdown.replace(/^(#+)([^ #\n\r])/gm, '$1 $2');
+  }
+
+  /**
    * 表单提交事件处理。
    * @param {SubmitEvent} e 事件对象
    * @private
@@ -163,6 +176,19 @@
       toggleBtn.classList.add('btn-primary');
       toggleBtn.disabled = false;
     };
+
+    // --- Markdown 解析相关 ---
+    // 为流式输出配置 Marked.js
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+      mangle: false,
+      headerIds: false
+    });
+    // 初始化两个部分的内容字符串
+    let reasoningMarkdown = '';
+    let answerMarkdown = '';
+    // ---
 
     // 切换为停止状态，并绑定一次性停止处理器
     switchToStopState();
@@ -261,12 +287,13 @@
               if (reasoningSection.classList.contains('reasoning-section--hidden')) {
                 reasoningSection.classList.remove('reasoning-section--hidden');
                 clearLoading(reasoningEl);
-                reasoningEl.textContent = '';
                 updateReasoningTitle('thinking');
                 // 确保思考过程展开显示
                 document.querySelector('.reasoning-section').classList.remove('collapsed');
               }
-              reasoningEl.textContent += dataStr.replace(/\\n/g, '\n');
+              reasoningMarkdown += dataStr.replace(/\\n/g, '\n');
+              const fixedReasoning = fixMarkdownHeadings(reasoningMarkdown);
+              reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(fixedReasoning));
               break;
             }
             case 'answer': {
@@ -278,9 +305,10 @@
                 }
 
                 clearLoading(answerEl);
-                answerEl.textContent = '';
               }
-              answerEl.textContent += dataStr.replace(/\\n/g, '\n');
+              answerMarkdown += dataStr.replace(/\\n/g, '\n');
+              const fixedAnswer = fixMarkdownHeadings(answerMarkdown);
+              answerEl.innerHTML = DOMPurify.sanitize(marked.parse(fixedAnswer));
               break;
             }
             case 'error': {
