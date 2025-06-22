@@ -125,15 +125,20 @@ body {
 .form-group__textarea {
   width: 100%;
   font-size: 1rem;
+  line-height: 1.5; /* 明确行高，便于计算 */
   /* 直接融入背景，移除独立样式 */
   background-color: transparent;
   border: none;
   padding: 0;
   border-radius: 0;
   color: var(--text-color);
-  resize: vertical;
-  min-height: 80px;
+  resize: none; /* 禁用手动调整大小 */
+  overflow-y: auto; /* 内容超出时显示滚动条 */
+  min-height: 3em; /* 初始高度约为两行 */
+  max-height: 50vh; /* 最大高度为屏幕一半 */
+  height: 3em; /* 初始高度，将由JS动态调整 */
   font-family: inherit;
+  transition: height 0.2s ease; /* 平滑高度变化 */
 }
 .form-group__textarea:focus {
   outline: none;

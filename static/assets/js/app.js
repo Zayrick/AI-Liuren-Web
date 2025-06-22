@@ -367,6 +367,9 @@
 
     // 动态调整内容区域的底部 padding 以适应输入区域
     adjustContentPadding();
+
+    // 初始化文本域自动高度功能
+    handleTextareaAutoResize();
   }
 
   /**
@@ -451,6 +454,28 @@
     // 同时监测页头和输入区域
     observer.observe(pageHeader);
     observer.observe(inputArea);
+  }
+
+  /**
+   * 实现文本域（textarea）高度根据内容自动调整的功能。
+   * - 初始高度由 CSS `min-height` 设定。
+   * - 输入时，高度会增长以容纳内容，直至达到 CSS `max-height`。
+   * - 超过 `max-height` 后，将出现滚动条。
+   * @private
+   */
+  function handleTextareaAutoResize() {
+    const textarea = document.getElementById('question');
+    if (!textarea) return;
+
+    const adjustHeight = () => {
+      textarea.style.height = 'auto'; // 重置高度以获取准确的 scrollHeight
+      textarea.style.height = `${textarea.scrollHeight}px`; // 设置为内容的实际高度
+    };
+
+    textarea.addEventListener('input', adjustHeight);
+
+    // 初始加载时也调用一次，以防有缓存内容
+    adjustHeight();
   }
 
   document.addEventListener('DOMContentLoaded', init);
