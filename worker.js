@@ -48,6 +48,69 @@ function buildSafeHeaders(init = {}) {
   return safe;
 }
 
+async function generateTitle({ question, usedApiKey, usedEndpoint, titleModel, writer, encoder }) {
+  try {
+    const messages = [
+      {
+        role: "user",
+        content: `用简单几个字总结用户占卜的问题，总结占卜标题，显示在软件页面
+你只要输出标题，不包含任何其他内容，以及句号，内容为占问: XXX 
+用户占卜的问题是：${question}`
+      }
+    ];
+
+    const requestBody = {
+      model: titleModel,
+      messages,
+      max_tokens: 50, 
+      stream: true
+    };
+
+    const aiResp = await fetch(usedEndpoint, {
+      method: "POST",
+      headers: buildSafeHeaders({
+        Authorization: `Bearer ${usedApiKey}`,
+        "Content-Type": "application/json"
+      }),
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!aiResp.ok || !aiResp.body) {
+      console.error(`Title generation failed: ${await aiResp.text()}`);
+      return;
+    }
+
+    const reader = aiResp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+
+      let idx;
+      while ((idx = buf.indexOf("\n")) !== -1) {
+        const rawLine = buf.slice(0, idx).trim();
+        buf = buf.slice(idx + 1);
+        if (!rawLine.startsWith("data: ")) continue;
+
+        const dataStr = rawLine.slice(6);
+        if (dataStr === "[DONE]") continue;
+
+        let payload;
+        try { payload = JSON.parse(dataStr); } catch { continue; }
+        const delta = payload.choices?.[0]?.delta || {};
+        if (delta.content) {
+          await writer.write(encoder.encode(`event: title\ndata: ${delta.content.replace(/\n/g, "\\n")}\n\n`));
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error during title generation:", err);
+  }
+}
+
 /**
  * @brief SSE 流式推送小六壬解卦结果
  * @param {StreamDivinationParams} params - 业务参数
@@ -59,108 +122,110 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
 
-  // 在后台执行，尽快返回可读流供浏览器建立连接
   (async () => {
     try {
-      // === 统一判定前端是否覆写 AI 连接信息 ===
       const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
       const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
       let usedModel;
       if (overrideProvided) {
         usedModel = model;
       } else {
-        /**
-         * 当用户未设置 API，而前端请求要求展示推理过程时，
-         * 默认切换至后台配置的 REASONING_MODEL（若存在），否则回退至 MODEL。
-         */
         usedModel = showReasoning && env.REASONING_MODEL ? env.REASONING_MODEL : env.MODEL;
       }
       const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
+      const titleModel = overrideProvided ? model : env.MODEL;
 
       if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
         throw new Error("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint");
       }
 
-      // ---------- 1️⃣ 计算卦象 & 八字 ----------
       const now = resolveClientTime(clientTime);
       const fullBazi = getFullBazi(now);
       const hexagram = generateHexagram(numbers);
 
-      // ---------- 2️⃣ meta 事件 ----------
       await writer.write(
         encoder.encode(
           `event: meta\ndata: ${JSON.stringify({ question, hexagram, time: fullBazi })}\n\n`
         )
       );
 
-      // ---------- 3️⃣ 组装 AI 请求 ----------
-      const messages = [];
-      if (env.SYSTEM_PROMPT) {
-        messages.push({ role: "system", content: env.SYSTEM_PROMPT });
-      }
-      messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
+      const mainDivinationTask = (async () => {
+        const messages = [];
+        if (env.SYSTEM_PROMPT) {
+          messages.push({ role: "system", content: env.SYSTEM_PROMPT });
+        }
+        messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
 
-      // ---------- 4️⃣ 调用 AI API (SSE) ----------
-      
-      // 1. 构建基础 body
-      const requestBody = {
-        model: usedModel,
-        messages,
-        max_tokens: 4096,
-        reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
-        stream: true
-      };
-
-      // 2. 如果使用 OpenRouter，则动态添加 provider 字段以优化速度
-      if (usedEndpoint.includes('openrouter')) {
-        requestBody.provider = {
-          sort: 'throughput'
+        const requestBody = {
+          model: usedModel,
+          messages,
+          max_tokens: 4096,
+          reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
+          stream: true
         };
-      }
 
-      const aiResp = await fetch(usedEndpoint, {
-        method: "POST",
-        headers: buildSafeHeaders({
-          Authorization: `Bearer ${usedApiKey}`,
-          "Content-Type": "application/json"
-        }),
-        body: JSON.stringify(requestBody)
-      });
+        if (usedEndpoint.includes('openrouter')) {
+          requestBody.provider = {
+            sort: 'throughput'
+          };
+        }
 
-      if (!aiResp.ok || !aiResp.body) {
-        const errText = await aiResp.text();
-        throw new Error(`AI 响应错误：${errText}`);
-      }
+        const aiResp = await fetch(usedEndpoint, {
+          method: "POST",
+          headers: buildSafeHeaders({
+            Authorization: `Bearer ${usedApiKey}`,
+            "Content-Type": "application/json"
+          }),
+          body: JSON.stringify(requestBody)
+        });
 
-      const reader = aiResp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
+        if (!aiResp.ok || !aiResp.body) {
+          const errText = await aiResp.text();
+          throw new Error(`AI 响应错误：${errText}`);
+        }
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
+        const reader = aiResp.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
 
-        let idx;
-        while ((idx = buf.indexOf("\n")) !== -1) {
-          const rawLine = buf.slice(0, idx).trim();
-          buf = buf.slice(idx + 1);
-          if (!rawLine.startsWith("data: ")) continue;
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
 
-          const dataStr = rawLine.slice(6);
-          if (dataStr === "[DONE]") continue;
+          let idx;
+          while ((idx = buf.indexOf("\n")) !== -1) {
+            const rawLine = buf.slice(0, idx).trim();
+            buf = buf.slice(idx + 1);
+            if (!rawLine.startsWith("data: ")) continue;
 
-          let payload;
-          try { payload = JSON.parse(dataStr); } catch { continue; }
-          const delta = payload.choices?.[0]?.delta || {};
-          if (delta.reasoning) {
-            await writer.write(encoder.encode(`event: reasoning\ndata: ${delta.reasoning.replace(/\n/g, "\\n")}\n\n`));
-          }
-          if (delta.content) {
-            await writer.write(encoder.encode(`event: answer\ndata: ${delta.content.replace(/\n/g, "\\n")}\n\n`));
+            const dataStr = rawLine.slice(6);
+            if (dataStr === "[DONE]") continue;
+
+            let payload;
+            try { payload = JSON.parse(dataStr); } catch { continue; }
+            const delta = payload.choices?.[0]?.delta || {};
+            if (delta.reasoning) {
+              await writer.write(encoder.encode(`event: reasoning\ndata: ${delta.reasoning.replace(/\n/g, "\\n")}\n\n`));
+            }
+            if (delta.content) {
+              await writer.write(encoder.encode(`event: answer\ndata: ${delta.content.replace(/\n/g, "\\n")}\n\n`));
+            }
           }
         }
-      }
+      })();
+
+      const titleGenerationTask = generateTitle({
+        question,
+        usedApiKey,
+        usedEndpoint,
+        titleModel,
+        writer,
+        encoder
+      });
+      
+      await Promise.all([mainDivinationTask, titleGenerationTask]);
+
     } catch (err) {
       await writer.write(encoder.encode(`event: error\ndata: ${String(err).replace(/\n/g, " ")}\n\n`));
     } finally {

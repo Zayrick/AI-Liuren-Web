@@ -188,6 +188,7 @@
     // 初始化两个部分的内容字符串
     let reasoningMarkdown = '';
     let answerMarkdown = '';
+    let isTitleStarted = false;
     // ---
 
     // 切换为停止状态，并绑定一次性停止处理器
@@ -278,6 +279,14 @@
                */
               metaEl.textContent = `所问之事：${question}\n所得之卦：${meta.hexagram}\n所占之时：${meta.time}`;
               clearLoading(metaEl);
+              break;
+            }
+            case 'title': {
+              if (!isTitleStarted) {
+                document.querySelector('.page-header__title').textContent = '';
+                isTitleStarted = true;
+              }
+              document.querySelector('.page-header__title').textContent += dataStr.replace(/\\n/g, '\n');
               break;
             }
             case 'reasoning': {
