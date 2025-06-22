@@ -279,6 +279,11 @@ body {
   font-style: italic;
 }
 
+/* 单独为"卦象"部分恢复 pre-wrap，以确保其换行符正常显示 */
+.result-item--meta .result-item__content {
+  white-space: pre-wrap;
+}
+
 /* --- 重构后的思考过程区域 --- */
 .reasoning-box {
   background-color: var(--primary-color);
