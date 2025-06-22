@@ -348,6 +348,23 @@ body {
   border-radius: var(--radius-base) var(--radius-base) 0 0;
 }
 
+/* --- 6. 动态样式与状态 --- */
+
+/* 用于JS控制"思考过程"部分的显示/隐藏 */
+.reasoning-section--hidden {
+  display: none;
+}
+
+/* 
+ * 在非深度思考模式下，为占卜结果添加顶部分隔线。
+ * 此规则仅在占卜开始后（.results-area--active 存在时）生效。
+ */
+.results-area--active .reasoning-section--hidden + .result-item--answer {
+  border-top: 1px solid var(--border-color);
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
 /* --- 5. 桌面端样式 (min-width: 768px) --- */
 @media (min-width: 768px) {
   body {

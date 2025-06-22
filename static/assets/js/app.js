@@ -80,24 +80,16 @@
    * @private
    */
   function onReasoningToggle(e) {
-    /** @type {HTMLButtonElement} */
-    const button = e.target;
-    const reasoningEl = document.getElementById('output-reasoning');
-    
-    // 切换按钮状态
+    const button = e.currentTarget;
     const isActive = button.getAttribute('data-active') === 'true';
+
+    // 仅切换按钮本身的状态，DOM 的可见性由 onsubmit 逻辑处理
     if (isActive) {
-      // 当前是激活状态，点击后变为非激活
       button.setAttribute('data-active', 'false');
       button.classList.remove('active');
-      reasoningEl.parentElement.style.display = 'none';
     } else {
-      // 当前是非激活状态，点击后变为激活
       button.setAttribute('data-active', 'true');
       button.classList.add('active');
-      if (reasoningEl.textContent.trim()) {
-        reasoningEl.parentElement.style.display = 'block';
-      }
     }
   }
 
@@ -119,6 +111,9 @@
   async function onSubmit(e) {
     e.preventDefault();
 
+    // 为结果区域添加激活状态类，用于控制分割线的显示
+    document.querySelector('.results-area').classList.add('results-area--active');
+
     const numbers = [
       parseInt(document.getElementById('n1').value, 10),
       parseInt(document.getElementById('n2').value, 10),
@@ -130,6 +125,10 @@
     const metaEl = document.getElementById('output-meta');
     const reasoningEl = document.getElementById('output-reasoning');
     const answerEl = document.getElementById('output-answer');
+    const reasoningSection = document.getElementById('reasoning-section');
+
+    // 初始隐藏推理面板，只有在收到事件后且用户仍允许时再展示
+    reasoningSection.classList.add('reasoning-section--hidden');
 
     showLoading(metaEl, '连接中');
     showLoading(reasoningEl, '等待');
@@ -215,9 +214,6 @@
 
       clearLoading(metaEl);
 
-      // 初始隐藏推理面板，只有在收到事件后且用户仍允许时再展示
-      reasoningEl.parentElement.parentElement.parentElement.style.display = 'none';
-
       const decoder = new TextDecoder('utf-8');
       const reader = resp.body.getReader();
       let buffer = '';
@@ -261,8 +257,9 @@
             case 'reasoning': {
               if (!isReasoningEnabled()) break;
 
-              if (reasoningEl.parentElement.parentElement.parentElement.style.display === 'none') {
-                reasoningEl.parentElement.parentElement.parentElement.style.display = 'block';
+              // 首次收到 reasoning 数据时，移除隐藏类
+              if (reasoningSection.classList.contains('reasoning-section--hidden')) {
+                reasoningSection.classList.remove('reasoning-section--hidden');
                 clearLoading(reasoningEl);
                 reasoningEl.textContent = '';
                 updateReasoningTitle('thinking');
@@ -326,7 +323,7 @@
     loadLocalSettings();
 
     // 默认隐藏推理过程容器
-    document.getElementById('output-reasoning').parentElement.parentElement.parentElement.style.display = 'none';
+    document.getElementById('reasoning-section').classList.add('reasoning-section--hidden');
     
     // 确保思考过程默认展开状态
     document.querySelector('.reasoning-section').classList.remove('collapsed');
