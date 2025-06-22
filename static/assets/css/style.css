@@ -279,31 +279,55 @@ body {
   font-style: italic;
 }
 
-/* 思考过程区域 */
-.reasoning-section {
-  background-color: transparent;
+/* --- 重构后的思考过程区域 --- */
+.reasoning-box {
+  background-color: var(--primary-color);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-base);
-  overflow: hidden;
-}
-.reasoning-section__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background-color: var(--secondary-color);
-  border-radius: var(--radius-base);
+  padding: 1rem;
+  position: relative;
   cursor: pointer;
   -webkit-user-select: none; /* Safari */
   -moz-user-select: none;    /* Firefox */
   -ms-user-select: none;     /* IE 10+ */
   user-select: none;
+  transition: padding 0.3s ease-in-out;
+  -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮效果 */
 }
-.reasoning-section__title {
+
+/* 折叠时减小垂直内边距，使其更紧凑 */
+.reasoning-section.collapsed .reasoning-box {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.reasoning-box__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  /* 默认包含展开状态的样式，并为其添加过渡效果 */
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: padding-bottom 0.3s ease-in-out, 
+              margin-bottom 0.3s ease-in-out,
+              border-color 0.15s ease-in-out;
+}
+
+/* 折叠时，平滑地移除间距和边框 */
+.reasoning-section.collapsed .reasoning-box__header {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom-color: transparent;
+}
+
+.reasoning-box__title {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-color);
 }
-.reasoning-section__toggle {
+
+.reasoning-box__toggle {
   background: none;
   border: none;
   color: var(--text-color);
@@ -314,38 +338,41 @@ body {
   align-items: center;
   justify-content: center;
 }
-.reasoning-section__toggle .material-symbols-rounded {
+
+.reasoning-box__toggle .material-symbols-rounded {
   font-size: 20px;
   transition: transform 0.3s ease;
 }
-.reasoning-section.collapsed .reasoning-section__toggle .material-symbols-rounded {
+
+.reasoning-section.collapsed .reasoning-box__toggle .material-symbols-rounded {
   transform: rotate(-90deg);
 }
-.reasoning-section__content-wrapper {
+
+.reasoning-box__content-wrapper {
   max-height: 1000px; /* 默认展开 */
   overflow: hidden;
-  transition: max-height 0.3s ease;
+  transition: max-height 0.3s ease-in-out;
 }
-.reasoning-section.collapsed .reasoning-section__content-wrapper {
+
+.reasoning-section.collapsed .reasoning-box__content-wrapper {
   max-height: 0;
 }
-.reasoning-section__content-box {
-  margin: 0.5rem 0;
-  padding: 1rem;
-  background-color: var(--primary-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-base);
-  position: relative;
+
+.reasoning-box__content {
+  font-size: 0.8rem; /* 思考内容使用更小的字号 */
+  line-height: 1.6;
 }
-.reasoning-section__content-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #3b82f6, #06b6d4);
-  border-radius: var(--radius-base) var(--radius-base) 0 0;
+
+/* 思考过程区域 - 旧样式清理 */
+.reasoning-section,
+.reasoning-section__header,
+.reasoning-section__content-wrapper,
+.reasoning-section__content-box,
+.reasoning-section__content-box::before,
+.reasoning-section__title,
+.reasoning-section__toggle {
+  /* 此处可安全移除旧规则，或暂时置空以待确认 */
+  /* 为了安全起见，这里仅作声明，实际操作时应删除旧规则 */
 }
 
 /* --- 6. 动态样式与状态 --- */
