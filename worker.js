@@ -13,12 +13,7 @@
 // -------------------- 依赖导入 --------------------
 import { generateHexagram } from "./lib/hexagram.js";
 import { resolveClientTime } from "./lib/time.js";
-import {
-  getYearGanzhi,
-  getMonthGanzhi,
-  getDayGanzhi,
-  getHourGanzhi
-} from "./lib/ganzhi.js";
+import { getFullBazi } from "./lib/ganzhi.js";
 
 /**
  * @typedef {Object} StreamDivinationParams
@@ -88,7 +83,7 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
 
       // ---------- 1️⃣ 计算卦象 & 八字 ----------
       const now = resolveClientTime(clientTime);
-      const fullBazi = `${getYearGanzhi(now)}年 ${getMonthGanzhi(now)}月 ${getDayGanzhi(now)}日 ${getHourGanzhi(now)}时`;
+      const fullBazi = getFullBazi(now);
       const hexagram = generateHexagram(numbers);
 
       // ---------- 2️⃣ meta 事件 ----------
