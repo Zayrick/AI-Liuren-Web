@@ -1,616 +1,343 @@
 /**
  * @file style.css
- * @brief 全局样式
- * @note 所有变量及组件样式保持原顺序，方便后续审计与维护。
+ * @brief 全局样式（已基于移动端优先和BEM重构）
+ * @note 样式已按移动端优先原则组织，并采用BEM命名法，以提高可维护性。
  */
 
-/**
- * @brief 设置根字体大小，确保REM单位计算的一致性
- * @note 1rem = 16px，便于换算和维护
- */
-html {
-  font-size: 16px; /* 明确设置根字体大小，1rem = 16px */
-}
-
+/* --- 1. 根与变量定义 --- */
 :root {
-  --primary: #1f2937;
-  --secondary: #374151;
-  --accent: #6b7280;
-  --bg-glass: rgba(255, 255, 255, 0.05);
-  --border-glass: rgba(255, 255, 255, 0.1);
-  --text-white: #ffffff;
-  --text-muted: rgba(255, 255, 255, 0.6);
-  /* --shadow: 0 4px 20px rgba(0, 0, 0, 0.15); */
-  --radius: 8px;
-  --transition: all 0.2s ease;
+  --primary-color: #1f2937;
+  --secondary-color: #374151;
+  --accent-color: #6b7280;
+  --text-color: #ffffff;
+  --text-muted-color: rgba(255, 255, 255, 0.6);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --background-blur: rgba(31, 41, 55, 0.6);
+  --button-active-bg: #3b82f6;
+  
+  --radius-base: 8px;
+  --transition-speed: 0.2s;
 }
 
+/* --- 2. 全局重置与基础样式 --- */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  font-size: 16px;
+  height: 100%; /* 关键：为全高布局提供基础 */
+}
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--primary);
-  min-height: 100vh;
-  color: var(--text-white);
-  padding: 2rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  height: 100%; /* 关键：确保 body 严格等于视口高度 */
+  /* 在移动端锁定 body 滚动，将滚动控制在 page-content 内部 */
+  overflow: hidden;
 }
 
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  align-items: start;
-}
-
-@media (max-width: 768px) {
-  body {
-    padding: 1rem;
-    padding-bottom: 0; /* 移动端底部无padding，为固定输入框让路 */
-  }
-  .container {
-    display: block; /* 移动端不使用grid布局 */
-    max-width: none; /* 移除最大宽度限制 */
-    margin: 0; /* 移除居中设置 */
-    padding-top: 64px; /* 为顶部固定标题预留空间 */
-    padding-bottom: 120px; /* 为底部固定输入框预留空间 */
-    min-height: calc(100vh - 2rem);
-  }
-  
-  /* 移动端各section的间距 */
-  /**
-   * @brief 移动端固定标题样式
-   * @details 采用与底部固定输入框相同的策略，使"AI小六壬"标题在滚动时保持可见。
-   */
-  .header {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    margin: 0 !important;
-    border-radius: 0 0 0 0 !important;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    background: none !important;
-    box-shadow: none !important;
-  }
-  .results-section {
-    margin-bottom: 1.5rem;
-  }
-  
-  /**
-   * @brief 移动端输入表单固定在底部的样式
-   * @note 类似Telegram聊天输入框的设计
-   */
-  .form-section {
-    position: fixed !important;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    margin: 0 !important;
-    border-radius: 16px 16px 0 0 !important;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25) !important;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border-bottom: none !important;
-  }
-  
-  /* 输入表单内部样式调整 */
-  .form-section h2 {
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    text-align: center;
-    opacity: 0.8;
-  }
-  
-  /* 数字输入框在移动端的优化 */
-  .number-inputs {
-    margin-bottom: 1rem;
-  }
-  
-  .number-input input {
-    height: 45px;
-    font-size: 1rem;
-    border-radius: 12px;
-  }
-  
-  /* 问题输入框优化 */
-  .question-textarea {
-    min-height: 80px;
-    border-radius: 12px;
-    font-size: 0.9rem;
-  }
-  
-  /* AI设置在移动端收起状态 */
-  .ai-settings {
-    margin-bottom: 1rem;
-    border-radius: 12px;
-  }
-  
-  /* 按钮组优化 */
-  .btn-group {
-    gap: 0.75rem;
-  }
-  
-  .btn {
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    font-size: 0.875rem;
-  }
-  
-  /* 结果区域在移动端的调整 */
-  .results-section {
-    margin-bottom: 1rem;
-  }
-}
-.card {
-  background: var(--secondary);
-  border-radius: var(--radius);
-  padding: 1rem;
-  box-shadow: var(--shadow);
-}
-
-
-.header {
-  grid-column: 1 / -1;
-  text-align: center;
-}
-
-.header h1 {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.form-section h2,
-.results-section h2 {
-  font-size: 1.25rem;
-  font-weight: 500;
-  margin-bottom: 0.6rem;
-  opacity: 0.9;
-}
-
-
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  opacity: 0.8;
-}
-
-.number-inputs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-@media (max-width: 480px) {
-  .number-inputs {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-  }
-  
-  /**
-   * @brief 超小屏幕设备的额外优化
-   * @note 确保在所有移动设备上都有良好的体验
-   */
-  .container {
-    padding-bottom: 170px; /* 更多空间给小屏设备 */
-  }
-  
-  .form-section {
-    padding: 1rem 1.2rem !important;
-    /* 添加安全区域适配，兼容有刘海的设备 */
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom)) !important;
-  }
-  
-  .number-input input {
-    height: 42px;
-    font-size: 0.95rem;
-  }
-  
-  .question-textarea {
-    min-height: 70px;
-    font-size: 0.85rem;
-  }
-  
-  /* 键盘弹出时的视觉优化 */
-  .form-section:focus-within {
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.4) !important;
-    -webkit-backdrop-filter: blur(15px);
-    backdrop-filter: blur(15px);
-    /* 键盘弹出时去除安全区域，只保留 0.5rem 间距 */
-    padding-bottom: 0.5rem !important;
-  }
-}
-
-/**
- * @brief 移动端专用的滚动优化
- * @note 确保内容区域能够正常滚动，不被固定输入框遮挡
- */
-@media (max-width: 768px) {
-  /* 防止内容被固定输入框遮挡的滚动容器 */
-  .results-section {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
-  }
-  
-
-  
-  /* 优化按钮的触摸体验 */
-  .btn {
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-}
-
-.number-input input {
-  width: 38px;
-  height: 38px;
-  font-size: 14px;
-  font-weight: 500;
-  text-align: center;
-  background: var(--primary);
-  border: 1px solid var(--border-glass);
-  border-radius: 8px;
-  color: var(--text-white);
-  transition: var(--transition);
-}
-
-.number-input input:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: var(--primary);
-}
-
-.question-textarea {
-  width: 100%;
-  font-size: 16px;
-  background: var(--secondary);
-  border: 0px;
-  border-radius: 8px;
-  color: var(--text-white);
-  resize: vertical;
-  transition: var(--transition);
-  font-family: inherit;
-}
-
-.question-textarea:focus {
-  outline: none;
-  border-color: var(--secondary);
-  background: var(--secondary);
-}
-
-.question-textarea::placeholder {
-  color: var(--text-muted);
-}
-
-.ai-settings {
-  background: var(--primary);
-  border: 1px solid var(--border-glass);
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-}
-
-.ai-settings-header {
-  padding: 1rem;
-  cursor: pointer;
+/* --- 3. 页面布局 --- */
+.page-container {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
+  flex-direction: column;
+  height: 100%; /* 继承 body 高度，避免使用 vh 产生溢出 */
+  /* 移除内边距，防止溢出导致 body 滚动 */
+}
+
+.page-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem;
+  text-align: center;
+  /* 从上至下由不透明渐变为半透明，以增强层次感 */
+  background-image: linear-gradient(
+    to bottom,
+    var(--primary-color),
+    var(--background-blur)
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.page-header__title {
+  font-size: 1rem;
   font-weight: 500;
 }
 
-.ai-settings-content {
-  padding: 0 1rem 1rem;
+.page-content {
+  flex-grow: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* padding-top 将由 JS 动态设置 */
+  padding-left: 1rem;
+  padding-right: 1rem;
+  /* padding-bottom 将由 JS 动态设置 */
+
+  /* 跨浏览器隐藏滚动条 */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* 隐藏滚动条 - WebKit 浏览器 */
+.page-content::-webkit-scrollbar {
   display: none;
 }
 
-.ai-settings-content.active {
-  display: block;
+.input-area {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+  background-color: var(--background-blur);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s ease, padding 0.3s ease;
 }
 
-.ai-input {
+/* 键盘弹出时，优化间距 */
+.input-area:focus-within {
+  padding-bottom: 0.5rem;
+}
+
+/* --- 4. 组件样式 --- */
+
+/* 卡片 (通用容器) */
+.card {
+  background-color: var(--secondary-color);
+  border-radius: var(--radius-base);
+  padding: 1rem;
+}
+
+/* 表单组 */
+.form-group__textarea {
+  width: 100%;
+  font-size: 1rem;
+  /* 直接融入背景，移除独立样式 */
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--text-color);
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+.form-group__textarea:focus {
+  outline: none;
+}
+.form-group__textarea::placeholder {
+  color: var(--text-muted-color);
+}
+
+/* AI 设置 */
+.ai-settings {
+  background-color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+  margin-top: 1rem;
+  display: none; /* 默认隐藏 */
+}
+.ai-settings__header {
+  padding: 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.ai-settings__content {
+  padding: 0 1rem 1rem;
+  display: none;
+}
+.ai-settings__content.active {
+  display: block;
+}
+.ai-settings__input {
   width: 100%;
   padding: 0.75rem;
   margin-bottom: 0.75rem;
-  background: var(--secondary);
-  border: 1px solid var(--border-glass);
+  background-color: var(--secondary-color);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  color: var(--text-white);
+  color: var(--text-color);
   font-size: 0.875rem;
-  transition: var(--transition);
 }
-
-.ai-input:focus {
+.ai-settings__input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--accent-color);
+}
+.ai-settings__input::placeholder {
+  color: var(--text-muted-color);
 }
 
-.ai-input::placeholder {
-  color: var(--text-muted);
-}
-
-.checkbox-group {
+/* 表单操作区 */
+.form-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  margin-top: 1rem;
 }
 
-.checkbox {
-  width: 16px;
-  height: 16px;
-  border: 1px solid var(--border-glass);
-  border-radius: 3px;
-  background: transparent;
-  cursor: pointer;
-}
-
-.checkbox:checked {
-  background: var(--text-white);
-  border-color: var(--text-white);
-}
-
-/**
- * @brief 推理过程切换按钮样式
- * @note 支持激活/非激活状态，激活时为蓝色，非激活时为原始灰色
- */
-.reasoning-toggle-container {
+/* 数字输入 */
+.number-inputs {
   display: flex;
-  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-right: auto;
+}
+.number-inputs__item input {
+  width: 38px;
+  height: 38px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  background-color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
+  color: var(--text-color);
+}
+.number-inputs__item input:focus {
+  outline: none;
+  border-color: var(--accent-color);
 }
 
-.reasoning-toggle-btn {
+/* 按钮 */
+.button {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  border: 1px solid var(--border-glass);
   border-radius: 6px;
+  border: 1px solid var(--border-color);
   cursor: pointer;
-  transition: var(--transition);
-  background: var(--secondary);
-  color: var(--text-white);
+  transition: all var(--transition-speed) ease;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
   font-family: inherit;
-  margin-right: auto;
-}
-
-.reasoning-toggle-btn:hover {
-  opacity: 0.8;
-}
-
-.reasoning-toggle-btn.active {
-  background: #3b82f6; /* 蓝色背景表示激活状态 */
-  border-color: #3b82f6;
-  color: white;
-}
-
-.reasoning-toggle-btn:not(.active) {
-  background: var(--secondary);
-  border-color: var(--border-glass);
-  color: var(--text-white);
-}
-
-.btn-group {
-  display: flex;
-  gap: 1rem;
-}
-
-.btn {
-  flex: 1;
-  padding: 0.875rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
-
-/**
- * @brief Material Icons 图标样式
- * @note 确保按钮中的图标正确显示和对齐
- */
-.btn .material-symbols-rounded {
+.button:hover {
+  opacity: 0.8;
+}
+.button--reasoning.active {
+  background-color: var(--button-active-bg);
+  border-color: var(--button-active-bg);
+  color: var(--text-color);
+}
+.button--icon {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+}
+.button--icon .material-symbols-rounded {
   font-size: 20px;
   font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 20;
 }
-
-.btn-primary {
-  background: var(--text-white);
-  color: var(--primary);
+.button--primary {
+  background-color: var(--text-color);
+  color: var(--primary-color);
 }
-
-.btn-primary:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.btn-secondary {
-  background: transparent;
-  color: var(--text-white);
-  border: 1px solid var(--border-glass);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--primary);
-}
-
-.btn:disabled {
+.button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* 结果区域 */
+.results-area {
+  background-color: transparent;
+}
 .result-item {
   margin-bottom: 1.5rem;
 }
-
 .result-item:last-child {
   margin-bottom: 0;
 }
-
-.result-title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-bottom: 0.75rem;
-  opacity: 0.8;
-}
-
-.result-content {
-  /* min-height: 80px; */
+.result-item__content {
   font-family: 'SF Mono', Monaco, monospace;
   font-size: 0.875rem;
   line-height: 1.5;
   white-space: pre-wrap;
+  word-wrap: break-word;
 }
-
-.result-content.loading {
-  color: var(--text-muted);
+.result-item__content.loading {
+  color: var(--text-muted-color);
   font-style: italic;
 }
 
-.chevron {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s ease;
-}
-
-.chevron.rotated {
-  transform: rotate(180deg);
-}
-
-/**
- * @brief 推理与操作行布局
- */
-.action-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-/**
- * @brief 小圆形图标按钮（开始/停止）
- */
-.icon-btn {
-  flex: 0 0 auto;
-  width: 1.875rem;
-  height: 1.875rem;
-  padding: 0;
-  border-radius: 50%;
-  margin-left: 0.5rem;
-}
-
-#ai-settings-toggle {
-  border: none;
-}
-
-/**
- * @brief 行内数字输入布局
- * @note 该规则仅作用于位于 .action-row 内的数字输入区，确保数字输入框与按钮水平排列。
- */
-.action-row .number-inputs {
-  display: flex;
-  gap: 0.1rem;
-  margin: 0 0.5rem 0 0; /* 右侧留空隙，与后续按钮间隔 */
-}
-
-/**
- * @brief 行内数字输入宽度限制
- * @note 固定宽度可防止输入框撑破布局，同时满足 1~3 位数字输入需求。
- */
-
-/**
- * @brief 思考过程折叠功能样式
- * @details 包含标题栏、折叠按钮、内容框和折叠动画等完整的折叠体验
- */
-
-/* 思考过程区域样式 */
+/* 思考过程区域 */
 .reasoning-section {
-  background: transparent;
-  border-radius: var(--radius);
+  background-color: transparent;
+  border-radius: var(--radius-base);
   overflow: hidden;
 }
-
-/* 思考过程标题栏 */
-.reasoning-header {
+.reasoning-section__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: var(--secondary);
-  border-radius: var(--radius);
+  background-color: var(--secondary-color);
+  border-radius: var(--radius-base);
   cursor: pointer;
-  transition: var(--transition);
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE 10+ */
   user-select: none;
 }
-
-/* 思考过程标题文字 */
-.reasoning-title {
+.reasoning-section__title {
   font-size: 0.875rem;
   font-weight: 500;
-  opacity: 0.9;
-  color: var(--text-white);
+  color: var(--text-color);
 }
-
-/* 折叠按钮 */
-.reasoning-collapse-btn {
+.reasoning-section__toggle {
   background: none;
   border: none;
-  color: var(--text-white);
+  color: var(--text-color);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 50%;
-  transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.reasoning-collapse-btn .material-symbols-rounded {
+.reasoning-section__toggle .material-symbols-rounded {
   font-size: 20px;
   transition: transform 0.3s ease;
 }
-
-/* 折叠时旋转图标 */
-.reasoning-section.collapsed .reasoning-collapse-btn .material-symbols-rounded {
+.reasoning-section.collapsed .reasoning-section__toggle .material-symbols-rounded {
   transform: rotate(-90deg);
 }
-
-/* 内容包装器 */
-.reasoning-content-wrapper {
-  max-height: none;
+.reasoning-section__content-wrapper {
+  max-height: 1000px; /* 默认展开 */
   overflow: hidden;
   transition: max-height 0.3s ease;
 }
-
-.reasoning-section.collapsed .reasoning-content-wrapper {
+.reasoning-section.collapsed .reasoning-section__content-wrapper {
   max-height: 0;
 }
-
-/* 思考内容框 */
-.reasoning-content-box {
+.reasoning-section__content-box {
   margin: 0.5rem 0;
   padding: 1rem;
-  background: var(--primary);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius);
+  background-color: var(--primary-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-base);
   position: relative;
 }
-
-.reasoning-content-box::before {
+.reasoning-section__content-box::before {
   content: '';
   position: absolute;
   top: 0;
@@ -618,44 +345,85 @@ body {
   right: 0;
   height: 2px;
   background: linear-gradient(90deg, #3b82f6, #06b6d4);
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: var(--radius-base) var(--radius-base) 0 0;
 }
 
-/* 思考内容样式调整 */
-.reasoning-content-box .result-content {
-  font-family: 'SF Mono', Monaco, monospace;
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: var(--text-white);
-  background: transparent;
-  border: none;
-  margin: 0;
-}
+/* --- 5. 桌面端样式 (min-width: 768px) --- */
+@media (min-width: 768px) {
+  body {
+    padding: 2rem;
+    overflow: auto; /* 桌面端恢复 body 的默认滚动行为 */
+    height: auto; /* 桌面端由内容决定高度 */
+  }
 
-/* 思考状态指示器 */
-.reasoning-thinking {
-  color: #3b82f6;
-  font-style: italic;
-}
+  /* 桌面端使用Grid布局 */
+  .page-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "header header"
+      "content form";
+    gap: 2rem;
+    height: auto;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0;
+  }
 
-.reasoning-completed {
-  color: #10b981;
-  font-weight: 500;
-}
+  /* --- Grid区域分配 --- */
+  .page-header {
+    grid-area: header;
+    position: static;
+    background-image: none; /* 移除移动端的渐变效果 */
+    background-color: var(--secondary-color);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: var(--radius-base);
+  }
 
-/* 移动端适配 */
-@media (max-width: 768px) {
-  .reasoning-header {
-    padding: 0.625rem 0.875rem;
+  .page-content {
+    grid-area: content;
+    overflow-y: visible;
+    padding: 0;
   }
   
-  .reasoning-content-box {
-    margin: 0.375rem 0;
-    padding: 0.875rem;
+  .input-area {
+    grid-area: form;
+    position: static;
+    background-color: var(--secondary-color);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: var(--radius-base);
+    box-shadow: none;
+    padding: 1rem;
   }
   
-  .reasoning-content-box .result-content {
-    font-size: 0.75rem;
-    line-height: 1.5;
+  /* --- 桌面端细节调整 --- */
+  .page-header__title {
+    font-size: 1rem;
+  }
+
+  .form-group__textarea {
+    background-color: var(--secondary-color);
+    min-height: auto;
+  }
+
+  .ai-settings {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-actions {
+    margin-top: 0;
+  }
+
+  .number-inputs {
+    margin-right: 0;
+  }
+
+  .number-inputs__item input {
+    width: 42px;
+    height: 42px;
   }
 }

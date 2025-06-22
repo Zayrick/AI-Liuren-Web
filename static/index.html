@@ -29,87 +29,86 @@
 </head>
 
 <body>
-  <div class="container">
-    <!-- 标题 -->
-    <header class="header card">
-      <h1>AI小六壬</h1>
+  <div class="page-container">
+
+    <header class="page-header">
+      <h1 class="page-header__title">AI小六壬</h1>
     </header>
 
-    <!-- 输入区域 -->
-    <section class="card form-section">
-      <form id="divination-form">
+    <main class="page-content">
 
-        <!-- 问题输入 -->
-        <div class="form-group">
-          <textarea id="question" class="question-textarea" required placeholder="请描述您想要占卜的问题..."></textarea>
+      <section class="results-area">
+        <div id="results" class="results-area__container">
+          <div class="result-item">
+            <div id="output-meta" class="result-item__content loading"></div>
+          </div>
+
+          <div class="result-item reasoning-section" id="reasoning-section">
+            <div class="reasoning-section__header" id="reasoning-header">
+              <span class="reasoning-section__title" id="reasoning-title">思考过程</span>
+              <button type="button" class="reasoning-section__toggle" id="reasoning-collapse-btn">
+                <span class="material-symbols-rounded">expand_more</span>
+              </button>
+            </div>
+            <div class="reasoning-section__content-wrapper" id="reasoning-content-wrapper">
+              <div class="reasoning-section__content-box">
+                <div id="output-reasoning" class="result-item__content"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-item">
+            <div id="output-answer" class="result-item__content"></div>
+          </div>
         </div>
+      </section>
 
-        <!-- AI设置 -->
-        <div class="ai-settings" style="display:none;">
-          <div class="ai-settings-header" id="ai-settings-header">
+    </main>
+    
+    <section class="input-area">
+      <form id="divination-form" class="input-area__form">
+
+        <div class="form-group">
+          <textarea id="question" class="form-group__textarea" required placeholder="请描述您想要占卜的问题..."></textarea>
+        </div>
+        
+        <div class="ai-settings" id="ai-settings">
+          <div class="ai-settings__header" id="ai-settings-header">
             <span>AI 设置</span>
           </div>
-          <div class="ai-settings-content" id="ai-settings-content">
-            <input type="password" id="apiKey" class="ai-input" placeholder="sk-xxxxxxx">
-            <input type="text" id="aiModel" class="ai-input" placeholder="gpt-4">
-            <input type="text" id="aiEndpoint" class="ai-input" placeholder="https://api.openai.com/v1/chat/completions">
+          <div class="ai-settings__content" id="ai-settings-content">
+            <input type="password" id="apiKey" class="ai-settings__input" placeholder="sk-xxxxxxx">
+            <input type="text" id="aiModel" class="ai-settings__input" placeholder="gpt-4">
+            <input type="text" id="aiEndpoint" class="ai-settings__input" placeholder="https://api.openai.com/v1/chat/completions">
           </div>
         </div>
 
-        <!-- 推理与操作行：始终可见 -->
-        <div class="action-row">
+        <div class="form-actions">
           <div class="number-inputs">
-            <div class="number-input">
+            <div class="number-inputs__item">
               <input type="number" id="n1" min="1" max="999" required placeholder="一">
             </div>
-            <div class="number-input">
+            <div class="number-inputs__item">
               <input type="number" id="n2" min="1" max="999" required placeholder="二">
             </div>
-            <div class="number-input">
+            <div class="number-inputs__item">
               <input type="number" id="n3" min="1" max="999" required placeholder="三">
             </div>
           </div>
-          <button type="button" id="reasoning-toggle" class="reasoning-toggle-btn" data-active="false">
+          <button type="button" id="reasoning-toggle" class="button button--reasoning" data-active="false">
             深度思考
           </button>
-          <button type="button" id="ai-settings-toggle" class="btn icon-btn btn-secondary" style="margin-left:0.5rem;">
+          <button type="button" id="ai-settings-toggle" class="button button--icon">
             <span class="material-symbols-rounded">settings</span>
           </button>
-          <button type="submit" id="toggle-btn" class="btn icon-btn btn-primary">
+          <button type="submit" id="toggle-btn" class="button button--icon button--primary">
             <span class="material-symbols-rounded">arrow_upward</span>
           </button>
         </div>
+
       </form>
     </section>
 
-    <!-- 结果区域 -->
-    <section class="card results-section" style="padding: 0; background-color: transparent">
-      <div id="results">
-        <div class="result-item">
-          <!-- <div id="output-meta" class="result-content loading">等待输入...</div> -->
-          <div id="output-meta" class="result-content loading"></div>
-        </div>
-      </hr>
-
-        <div class="result-item reasoning-section">
-          <div class="reasoning-header" id="reasoning-header">
-            <span class="reasoning-title" id="reasoning-title">思考过程</span>
-            <button type="button" class="reasoning-collapse-btn" id="reasoning-collapse-btn">
-              <span class="material-symbols-rounded">expand_more</span>
-            </button>
-          </div>
-          <div class="reasoning-content-wrapper" id="reasoning-content-wrapper">
-            <div class="reasoning-content-box">
-              <div id="output-reasoning" class="result-content"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="result-item">
-          <div id="output-answer" class="result-content"></div>
-        </div>
-      </div>
-    </section>
   </div>
 </body>
 

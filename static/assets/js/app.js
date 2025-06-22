@@ -339,6 +339,9 @@
     // 禁用旧的 AI 设置标题点击指针样式
     const headerEl = document.getElementById('ai-settings-header');
     headerEl.style.cursor = 'default';
+
+    // 动态调整内容区域的底部 padding 以适应输入区域
+    adjustContentPadding();
   }
 
   /**
@@ -387,6 +390,41 @@
     setTimeout(() => {
       reasoningSection.classList.add('collapsed');
     }, 1000);
+  }
+
+  /**
+   * 动态调整内容区域的内边距，以完美适配顶部页头和底部输入区域的高度。
+   * 此函数使用 ResizeObserver 监测页头和输入区域的高度变化，
+   * 确保内容不会被遮挡，同时避免了硬编码带来的设备兼容性问题。
+   * @private
+   */
+  function adjustContentPadding() {
+    const pageContainer = document.querySelector('.page-container');
+    const pageContent = document.querySelector('.page-content');
+    const pageHeader = document.querySelector('.page-header');
+    const inputArea = document.querySelector('.input-area');
+
+    if (!pageContainer || !pageContent || !pageHeader || !inputArea) return;
+
+    const observer = new ResizeObserver(() => {
+      // 只要有任何一个被监测元素尺寸变化，就重新计算所有动态 padding
+      if (window.getComputedStyle(pageContainer).display !== 'grid') {
+        const headerHeight = pageHeader.getBoundingClientRect().height;
+        const inputAreaHeight = inputArea.getBoundingClientRect().height;
+
+        // 为上下都增加 1rem 的舒适间距
+        pageContent.style.paddingTop = `calc(${headerHeight}px + 1rem)`;
+        pageContent.style.paddingBottom = `calc(${inputAreaHeight}px + 1rem)`;
+      } else {
+        // 桌面端恢复默认值
+        pageContent.style.paddingTop = '';
+        pageContent.style.paddingBottom = '';
+      }
+    });
+
+    // 同时监测页头和输入区域
+    observer.observe(pageHeader);
+    observer.observe(inputArea);
   }
 
   document.addEventListener('DOMContentLoaded', init);
