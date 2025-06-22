@@ -106,19 +106,30 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
       messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
 
       // ---------- 4️⃣ 调用 AI API (SSE) ----------
+      
+      // 1. 构建基础 body
+      const requestBody = {
+        model: usedModel,
+        messages,
+        max_tokens: 4096,
+        reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
+        stream: true
+      };
+
+      // 2. 如果使用 OpenRouter，则动态添加 provider 字段以优化速度
+      if (usedEndpoint.includes('openrouter')) {
+        requestBody.provider = {
+          sort: 'throughput'
+        };
+      }
+
       const aiResp = await fetch(usedEndpoint, {
         method: "POST",
         headers: buildSafeHeaders({
           Authorization: `Bearer ${usedApiKey}`,
           "Content-Type": "application/json"
         }),
-        body: JSON.stringify({
-          model: usedModel,
-          messages,
-          max_tokens: 4096,
-          reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
-          stream: true
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!aiResp.ok || !aiResp.body) {
@@ -222,93 +233,17 @@ async function handleDivinationAPI(request, env) {
     }, env);
   }
 
-  // 非 SSE：一次性 JSON 响应
-  let body;
-  try { 
-    body = await request.json(); 
-  } catch { 
-    return new Response("请求体应为 JSON", { status: 400 }); 
-  }
-  
-  const { numbers, question, show_reasoning = true, apiKey, model, endpoint, clientTime } = body || {};
-  if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
-    return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
-  }
-
-  // === 统一判定前端是否覆写 AI 连接信息 ===
-  const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
-  const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
-  let usedModel;
-  if (overrideProvided) {
-    usedModel = model;
-  } else {
-    usedModel = show_reasoning && env.REASONING_MODEL ? env.REASONING_MODEL : env.MODEL;
-  }
-  const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
-
-  if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
-    return new Response("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint", { status: 400 });
-  }
-
-  try {
-    // 计算卦象和八字
-    const now = resolveClientTime(clientTime);
-    const fullBazi = `${getYearGanzhi(now)}年 ${getMonthGanzhi(now)}月 ${getDayGanzhi(now)}日 ${getHourGanzhi(now)}时`;
-    const hexagram = generateHexagram(numbers);
-
-    // 组装 AI 请求
-    const messages = [];
-    if (env.SYSTEM_PROMPT) {
-      messages.push({ role: "system", content: env.SYSTEM_PROMPT });
-    }
-    messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
-
-    // 调用 AI API
-    const aiResp = await fetch(usedEndpoint, {
-      method: "POST",
-      headers: buildSafeHeaders({
-        Authorization: `Bearer ${usedApiKey}`,
-        "Content-Type": "application/json"
-      }),
-      body: JSON.stringify({
-        model: usedModel,
-        messages,
-        max_tokens: 4096,
-        reasoning: show_reasoning ? { max_tokens: 2048 } : undefined
-      })
-    });
-
-    if (!aiResp.ok) {
-      const errText = await aiResp.text();
-      throw new Error(`AI 响应错误：${errText}`);
-    }
-
-    const aiResult = await aiResp.json();
-    const answer = aiResult.choices?.[0]?.message?.content || "未能获取到解答";
-    const reasoning = aiResult.choices?.[0]?.message?.reasoning || "";
-
-    return new Response(JSON.stringify({
-      question,
-      hexagram,
-      time: fullBazi,
-      answer,
-      reasoning: show_reasoning ? reasoning : undefined
-    }), {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": "*"
+  // 对于所有其他 POST 请求，返回错误，因为我们只支持 SSE
+  return new Response(
+    "不支持的请求类型。本接口仅接受 'Accept: text/event-stream' 的流式请求。",
+    {
+      status: 400,
+      headers: { 
+        "Content-Type": "text/plain; charset=utf-8",
+        "Access-Control-Allow-Origin": "*" 
       }
-    });
-
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": "*"
-      }
-    });
-  }
+    }
+  );
 }
 
 /**
