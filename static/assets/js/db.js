@@ -166,5 +166,61 @@ function deleteRecord(id) {
     });
 }
 
+/**
+ * 搜索历史记录，匹配标题和问题中的关键词
+ * @param {string} keyword - 搜索关键词
+ * @returns {Promise<Array<object>>} 返回一个 Promise，解析为匹配的记录数组
+ */
+function searchRecords(keyword) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            return reject("数据库未初始化");
+        }
+        
+        if (!keyword || keyword.trim() === '') {
+            // 如果关键词为空，返回所有记录
+            return getAllRecords().then(resolve).catch(reject);
+        }
+        
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+        
+        request.onsuccess = (event) => {
+            const allRecords = event.target.result;
+            const searchKeyword = keyword.toLowerCase().trim();
+            
+            // 过滤匹配的记录
+            const matchedRecords = allRecords.filter(record => {
+                // 检查标题是否包含关键词
+                const titleMatch = record.title && record.title.toLowerCase().includes(searchKeyword);
+                
+                // 检查问题内容是否包含关键词（从meta中提取）
+                let questionMatch = false;
+                if (record.meta) {
+                    // 从meta中提取问题内容
+                    const metaLines = record.meta.split('\n');
+                    const questionLine = metaLines.find(line => line.startsWith('所问之事：'));
+                    if (questionLine) {
+                        const question = questionLine.replace('所问之事：', '').trim();
+                        questionMatch = question.toLowerCase().includes(searchKeyword);
+                    }
+                }
+                
+                return titleMatch || questionMatch;
+            });
+            
+            // 按时间戳降序排序
+            const sortedRecords = matchedRecords.sort((a, b) => b.timestamp - a.timestamp);
+            resolve(sortedRecords);
+        };
+        
+        request.onerror = (event) => {
+            console.error('搜索记录失败:', event.target.error);
+            reject('搜索记录失败');
+        };
+    });
+}
+
 // 导出模块函数
-export { initDB, addRecord, getAllRecords, getRecordById, deleteRecord }; 
+export { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRecords }; 

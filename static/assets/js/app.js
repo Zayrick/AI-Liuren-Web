@@ -10,7 +10,7 @@
  *
  * 所有函数均包含 Doxygen/JSDoc 风格注释，符合企业级审计要求。
  */
-import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from './db.js';
+import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRecords } from './db.js';
 
 (() => {
   'use strict';
@@ -22,6 +22,10 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
   let isSaveEnabled = true;
   /** @type {number|null} 当前显示的聊天记录ID */
   let currentChatId = null;
+  /** @type {string} 当前搜索关键词 */
+  let currentSearchKeyword = '';
+  /** @type {number|null} 搜索防抖定时器ID */
+  let searchDebounceTimer = null;
 
   /**
    * 显示加载状态并更新文案。
@@ -390,9 +394,17 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
     });
     // -- 新增历史记录事件绑定 --
     document.getElementById('history-btn').addEventListener('click', () => toggleHistoryPanel(true));
-    document.getElementById('history-panel-close-btn').addEventListener('click', () => toggleHistoryPanel(false));
+    document.getElementById('history-panel-close-btn').addEventListener('click', () => {
+      // 关闭时清空当前对话，实现"新占卜"功能
+      clearChat();
+      toggleHistoryPanel(false);
+    });
     document.getElementById('page-overlay').addEventListener('click', () => toggleHistoryPanel(false));
     document.getElementById('status-btn').addEventListener('click', handleStatusButtonClick);
+    
+    // -- 搜索功能事件绑定 --
+    document.getElementById('history-search-input').addEventListener('input', handleSearchInput);
+    document.getElementById('history-search-clear').addEventListener('click', clearSearch);
 
     // 初始化配置
     loadLocalSettings();
@@ -542,7 +554,7 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
     const panel = document.getElementById('history-panel');
     const overlay = document.getElementById('page-overlay');
     if (show) {
-      renderHistory(); // 显示前重新渲染列表
+      renderHistory(currentSearchKeyword); // 显示前根据当前搜索关键词重新渲染列表
       panel.classList.add('is-open');
       overlay.classList.add('is-visible');
     } else {
@@ -562,16 +574,20 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
   }
 
   /**
-   * 获取并渲染所有历史记录到面板
+   * 获取并渲染历史记录到面板，支持搜索功能
+   * @param {string} [keyword=''] 搜索关键词，为空时显示所有记录
    * @private
    */
-  async function renderHistory() {
+  async function renderHistory(keyword = '') {
     const listEl = document.getElementById('history-list');
     listEl.innerHTML = ''; // 清空现有列表
     try {
-      const records = await getAllRecords();
+      const records = await searchRecords(keyword);
       if (!records || records.length === 0) {
-        listEl.innerHTML = '<p style="text-align: center; color: var(--text-muted-color);">暂无历史记录</p>';
+        const message = keyword.trim() 
+          ? `未找到包含"${keyword}"的历史记录` 
+          : '暂无历史记录';
+        listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted-color);">${message}</p>`;
         return;
       }
       
@@ -972,6 +988,79 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
     
     // 删除按钮点击
     deleteBtn.addEventListener('click', handleDelete);
+  }
+
+  // --- 搜索功能相关函数 ---
+
+  /**
+   * 处理搜索输入事件
+   * @param {Event} e - 输入事件
+   * @private
+   */
+  function handleSearchInput(e) {
+    const keyword = e.target.value.trim();
+    currentSearchKeyword = keyword;
+    
+    // 显示或隐藏清除按钮
+    toggleSearchClearButton(keyword);
+    
+    // 使用防抖处理搜索
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
+    
+    searchDebounceTimer = setTimeout(() => {
+      performSearch(keyword);
+    }, 300); // 300ms防抖延迟
+  }
+
+  /**
+   * 执行搜索操作
+   * @param {string} keyword - 搜索关键词
+   * @private
+   */
+  async function performSearch(keyword) {
+    try {
+      await renderHistory(keyword);
+    } catch (error) {
+      console.error('搜索失败:', error);
+      const listEl = document.getElementById('history-list');
+      listEl.innerHTML = '<p style="text-align: center; color: var(--text-muted-color);">搜索时发生错误</p>';
+    }
+  }
+
+  /**
+   * 清除搜索内容
+   * @private
+   */
+  function clearSearch() {
+    const searchInput = document.getElementById('history-search-input');
+    searchInput.value = '';
+    currentSearchKeyword = '';
+    toggleSearchClearButton('');
+    
+    // 清除防抖定时器
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+    
+    // 重新渲染所有历史记录
+    renderHistory();
+  }
+
+  /**
+   * 显示或隐藏搜索清除按钮
+   * @param {string} value - 当前输入值
+   * @private
+   */
+  function toggleSearchClearButton(value) {
+    const clearBtn = document.getElementById('history-search-clear');
+    if (value.length > 0) {
+      clearBtn.classList.add('is-visible');
+    } else {
+      clearBtn.classList.remove('is-visible');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
