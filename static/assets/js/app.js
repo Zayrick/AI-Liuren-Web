@@ -10,7 +10,7 @@
  *
  * 所有函数均包含 Doxygen/JSDoc 风格注释，符合企业级审计要求。
  */
-import { initDB, addRecord, getAllRecords, getRecordById } from './db.js';
+import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from './db.js';
 
 (() => {
   'use strict';
@@ -581,10 +581,20 @@ import { initDB, addRecord, getAllRecords, getRecordById } from './db.js';
           itemEl.className = 'history-item';
           itemEl.dataset.id = record.id;
           itemEl.innerHTML = `
-            <div class="history-item__title">${DOMPurify.sanitize(record.title || '无标题')}</div>
-            <div class="history-item__time">${formatTimestamp(record.timestamp)}</div>
+            <div class="history-item__content">
+              <div class="history-item__title">${DOMPurify.sanitize(record.title || '无标题')}</div>
+              <div class="history-item__time">${formatTimestamp(record.timestamp)}</div>
+            </div>
+            <div class="history-item__delete">删除</div>
           `;
-          itemEl.addEventListener('click', () => handleHistoryItemClick(record.id));
+          
+          // 为内容区域添加点击事件
+          const contentEl = itemEl.querySelector('.history-item__content');
+          contentEl.addEventListener('click', () => handleHistoryItemClick(record.id));
+          
+          // 初始化滑动删除功能
+          initSwipeToDelete(itemEl, record.id);
+          
           fragment.appendChild(itemEl);
         });
       }
@@ -802,6 +812,131 @@ import { initDB, addRecord, getAllRecords, getRecordById } from './db.js';
     
     updateStatusIcon(); // 更新图标状态为"无内容"
     handleTextareaAutoResize(); // 重置输入框高度
+  }
+
+  /**
+   * 初始化历史条目的滑动删除功能
+   * @param {HTMLElement} itemEl - 历史条目元素
+   * @param {number} recordId - 记录ID
+   * @private
+   */
+  function initSwipeToDelete(itemEl, recordId) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    let startTime = 0;
+    
+    const contentEl = itemEl.querySelector('.history-item__content');
+    const deleteBtn = itemEl.querySelector('.history-item__delete');
+    const threshold = 50; // 触发滑动的最小距离
+    
+    // 重置滑动状态
+    function resetSwipe() {
+      itemEl.classList.remove('history-item--swiped');
+      contentEl.style.transform = '';
+    }
+    
+    // 处理滑动开始
+    function handleStart(e) {
+      // 如果已经有其他条目处于滑动状态，先重置它们
+      document.querySelectorAll('.history-item--swiped').forEach(item => {
+        if (item !== itemEl) {
+          item.classList.remove('history-item--swiped');
+          item.querySelector('.history-item__content').style.transform = '';
+        }
+      });
+      
+      isDragging = true;
+      startTime = Date.now();
+      startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      contentEl.style.transition = 'none';
+    }
+    
+    // 处理滑动中
+    function handleMove(e) {
+      if (!isDragging) return;
+      
+      e.preventDefault();
+      currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      const deltaX = currentX - startX;
+      
+      // 只允许向左滑动
+      if (deltaX < 0) {
+        const translateX = Math.max(deltaX, -80);
+        contentEl.style.transform = `translateX(${translateX}px)`;
+      }
+    }
+    
+    // 处理滑动结束
+    function handleEnd() {
+      if (!isDragging) return;
+      
+      isDragging = false;
+      contentEl.style.transition = '';
+      
+      const deltaX = currentX - startX;
+      const deltaTime = Date.now() - startTime;
+      const velocity = Math.abs(deltaX) / deltaTime;
+      
+      // 根据滑动距离或速度决定是否显示删除按钮
+      if ((deltaX < -threshold) || (velocity > 0.3 && deltaX < 0)) {
+        itemEl.classList.add('history-item--swiped');
+      } else {
+        resetSwipe();
+      }
+    }
+    
+    // 处理删除
+    async function handleDelete() {
+      itemEl.classList.add('history-item--deleting');
+      
+      try {
+        // 从数据库删除记录
+        await deleteRecord(recordId);
+        
+        // 如果删除的是当前查看的记录，清空界面
+        if (currentChatId === recordId) {
+          clearChat();
+        }
+        
+        // 动画结束后移除元素
+        setTimeout(() => {
+          itemEl.remove();
+          
+          // 检查是否还有记录
+          const remainingItems = document.querySelectorAll('.history-item').length;
+          if (remainingItems === 0) {
+            document.getElementById('history-list').innerHTML = 
+              '<p style="text-align: center; color: var(--text-muted-color);">暂无历史记录</p>';
+          }
+        }, 300);
+        
+      } catch (error) {
+        console.error('删除记录失败:', error);
+        itemEl.classList.remove('history-item--deleting');
+      }
+    }
+    
+    // 绑定事件
+    // 触摸事件
+    contentEl.addEventListener('touchstart', handleStart, { passive: true });
+    contentEl.addEventListener('touchmove', handleMove, { passive: false });
+    contentEl.addEventListener('touchend', handleEnd);
+    
+    // 鼠标事件（用于开发测试）
+    contentEl.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    
+    // 删除按钮点击
+    deleteBtn.addEventListener('click', handleDelete);
+    
+    // 点击其他地方时重置滑动状态
+    document.addEventListener('click', (e) => {
+      if (!itemEl.contains(e.target) && itemEl.classList.contains('history-item--swiped')) {
+        resetSwipe();
+      }
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);

@@ -141,6 +141,30 @@ function getRecordById(id) {
     });
 }
 
+/**
+ * 从数据库中删除指定ID的记录
+ * @param {number} id - 要删除的记录ID
+ * @returns {Promise<void>} 返回一个 Promise
+ */
+function deleteRecord(id) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            return reject("数据库未初始化");
+        }
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(id);
+
+        request.onsuccess = () => {
+            resolve();
+        };
+
+        request.onerror = (event) => {
+            console.error('删除记录失败:', event.target.error);
+            reject('删除记录失败');
+        };
+    });
+}
 
 // 导出模块函数
-export { initDB, addRecord, getAllRecords, getRecordById }; 
+export { initDB, addRecord, getAllRecords, getRecordById, deleteRecord }; 
