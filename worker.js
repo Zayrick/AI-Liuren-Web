@@ -135,7 +135,7 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
         usedModel = showReasoning && env.REASONING_MODEL ? env.REASONING_MODEL : env.MODEL;
       }
       const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
-      const titleModel = overrideProvided ? model : env.MODEL;
+      const titleModel = overrideProvided ? model : env.TITLE_MODEL;
 
       if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
         throw new Error("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint");

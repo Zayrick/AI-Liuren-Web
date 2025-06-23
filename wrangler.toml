@@ -13,8 +13,9 @@ compatibility_date = "2025-06-11"
 # "throughput": 优先选择吞吐量最高的模型
 # "latency": 优先选择最低延迟
 OPENROUTER_SORT = "price"
-REASONING_MODEL = "deepseek/deepseek-r1-0528"
 MODEL = "deepseek/deepseek-chat-v3-0324"
+TITLE_MODEL = "google/gemini-2.5-flash-lite-preview-06-17"
+REASONING_MODEL = "deepseek/deepseek-r1-0528"
 ENDPOINT = "https://gateway.ai.cloudflare.com/v1/9ce9598718c27c7441e2818185c1dbfa/openrouter/openrouter/v1/chat/completions"
 # API_KEY = ""
 # SYSTEM_PROMPT = "你是一位精通小六壬的占卜师"
