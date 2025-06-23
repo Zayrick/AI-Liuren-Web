@@ -90,7 +90,82 @@ export function toggleAiSettings() {
 export function toggleReasoningCollapse() {
   const reasoningSection = document.querySelector('.reasoning-section');
   if (!reasoningSection) return;
+
+  const isCollapsing = !reasoningSection.classList.contains('collapsed');
   reasoningSection.classList.toggle('collapsed');
+
+  if (isCollapsing) {
+    updateReasoningPreview();
+  } else {
+    clearReasoningPreview();
+  }
+}
+
+/**
+ * 更新思考内容预览。
+ * 该函数为私有函数，不导出。
+ * @private
+ */
+function updateReasoningPreview() {
+  const reasoningBox = document.querySelector('.reasoning-box');
+  const reasoningContent = document.getElementById('output-reasoning');
+  if (!reasoningBox || !reasoningContent) return;
+
+  const header = reasoningBox.querySelector('.reasoning-box__header');
+  let preview = header.querySelector('.reasoning-preview');
+
+  const plainText = reasoningContent.textContent
+    .replace(/\n+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!plainText) {
+    if (preview) preview.remove();
+    return;
+  }
+
+  if (!preview) {
+    preview = document.createElement('div');
+    preview.className = 'reasoning-preview';
+    const toggleButton = header.querySelector('.reasoning-box__toggle');
+    header.insertBefore(preview, toggleButton);
+  }
+
+  preview.textContent = plainText;
+}
+
+/**
+ * 如果思考过程区域已折叠，则更新预览。
+ */
+export function updateReasoningPreviewIfCollapsed() {
+  const reasoningSection = document.querySelector('.reasoning-section');
+  if (reasoningSection && reasoningSection.classList.contains('collapsed')) {
+    updateReasoningPreview();
+  }
+}
+
+/**
+ * 清除思考内容预览。
+ */
+export function clearReasoningPreview() {
+  const preview = document.querySelector('.reasoning-preview');
+  if (preview) {
+    preview.remove();
+  }
+}
+
+/**
+ * 更新思考过程的实时内容。
+ * @param {string} content 思考内容（markdown格式）
+ */
+export function updateReasoningContent(content) {
+  const reasoningSection = document.querySelector('.reasoning-section');
+  if (!reasoningSection) return;
+  
+  // 如果处于折叠状态，更新预览
+  if (reasoningSection.classList.contains('collapsed')) {
+    updateReasoningPreview();
+  }
 }
 
 /**
@@ -133,6 +208,7 @@ export function updateReasoningTitle(status) {
     if (reasoningBox) {
       reasoningBox.classList.add('reasoning-completed');
     }
+    clearReasoningPreview();
   }
 }
 
