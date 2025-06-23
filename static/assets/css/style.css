@@ -596,7 +596,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
+  /* border-bottom: 1px solid var(--border-color); */
   flex-shrink: 0;
 }
 
@@ -641,7 +641,10 @@ body {
   padding: 0.6rem 1rem;
   margin-top: 0;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  /* 优化过渡效果：仅对必要的属性添加过渡，避免 all 造成的性能问题和视觉闪烁 */
+  transition: background-color 0.2s ease-in-out, 
+              border-color 0.2s ease-in-out,
+              border-radius 0.2s ease-in-out;
   border: 1px solid transparent;
   border-top-color: var(--border-color);
   border-radius: 0;
@@ -656,7 +659,8 @@ body {
 .history-item__content {
   position: relative;
   z-index: 2;
-  background-color: inherit;
+  /* 移除 background-color: inherit，避免继承问题 */
+  /* 仅对 transform 添加过渡，避免背景色过渡造成的视觉问题 */
   transition: transform 0.3s ease;
 }
 
@@ -666,9 +670,7 @@ body {
     border-top-color: transparent;
   }
   
-  .history-item:hover .history-item__content {
-    background-color: rgba(107, 114, 128, 0.3);
-  }
+  /* 移除子元素的背景色设置，避免重复渲染 */
 }
 
 .history-item.is-active {
@@ -678,9 +680,7 @@ body {
   border-top-color: var(--accent-color);
 }
 
-.history-item.is-active .history-item__content {
-  background-color: var(--primary-color);
-}
+/* 移除子元素的背景色设置，避免重复渲染 */
 
 /* 隐藏选中条目下方条目的上边框 */
 .history-item.is-active + .history-item {
@@ -708,6 +708,20 @@ body {
 
 .history-item--swiped .history-item__content {
   transform: translateX(-80px);
+  /* 普通状态下滑动时的背景色 */
+  background-color: var(--secondary-color);
+}
+
+/* 选中状态下滑动时，保持选中状态的背景色 */
+.history-item.is-active.history-item--swiped .history-item__content {
+  background-color: var(--primary-color);
+}
+
+/* hover状态下滑动时，保持hover状态的背景色 */
+@media (hover: hover) {
+  .history-item:hover.history-item--swiped .history-item__content {
+    background-color: rgba(107, 114, 128, 0.3);
+  }
 }
 
 .history-item--swiped .history-item__delete {
