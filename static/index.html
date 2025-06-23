@@ -28,14 +28,33 @@
   <!-- Markdown 解析与安全净化库 -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
-  <script src="./assets/js/app.js" defer></script>
+  <script src="./assets/js/app.js" type="module" defer></script>
 </head>
 
 <body>
   <div class="page-container">
 
+    <aside class="history-panel" id="history-panel">
+      <div class="history-panel__header">
+        <h2>占卜历史</h2>
+        <button class="history-panel__close-btn" id="history-panel-close-btn">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="history-panel__content" id="history-list">
+        <!-- 历史记录将动态插入此处 -->
+      </div>
+    </aside>
+    <div class="page-overlay" id="page-overlay"></div>
+
     <header class="page-header">
+      <button type="button" class="button button--icon" id="history-btn">
+        <span class="material-symbols-rounded">notes</span>
+      </button>
       <h1 class="page-header__title">AI小六壬</h1>
+      <button type="button" class="button button--icon" id="status-btn">
+        <span class="material-symbols-rounded">comments_disabled</span>
+      </button>
     </header>
 
     <main class="page-content">

@@ -55,7 +55,9 @@ body {
   right: 0;
   z-index: 1000;
   padding: 1rem;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   /* 从上至下由不透明渐变为半透明，以增强层次感 */
   background-image: linear-gradient(
     to bottom,
@@ -67,8 +69,14 @@ body {
 }
 
 .page-header__title {
+  flex-grow: 1;
+  text-align: center;
   font-size: 1rem;
   font-weight: 500;
+}
+
+.page-header .button--icon {
+  flex-shrink: 0;
 }
 
 .page-content {
@@ -503,6 +511,10 @@ body {
   .page-header {
     grid-area: header;
     position: static;
+    display: block;
+    justify-content: initial;
+    align-items: initial;
+    text-align: center;
     background-image: none; /* 移除移动端的渐变效果 */
     background-color: var(--secondary-color);
     backdrop-filter: none;
@@ -529,7 +541,7 @@ body {
   
   /* --- 桌面端细节调整 --- */
   .page-header__title {
-    font-size: 1rem;
+    flex-grow: initial;
   }
 
   .form-group__textarea {
@@ -554,4 +566,137 @@ body {
     width: 42px;
     height: 42px;
   }
+}
+
+/* --- 8. 历史记录面板 --- */
+.history-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 85%;
+  max-width: 320px;
+  background-color: var(--secondary-color);
+  z-index: 2000;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-in-out, visibility 0.3s;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0px 15px rgba(0,0,0,0.2);
+  visibility: hidden; /* 隐藏时不可见 */
+}
+
+.history-panel.is-open {
+  transform: translateX(0);
+  visibility: visible; /* 打开时可见 */
+}
+
+.history-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.history-panel__header h2 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.history-panel__close-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-panel__content {
+  flex-grow: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+}
+
+.history-group__title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted-color);
+  text-transform: uppercase;
+  padding: 0.5rem 0;
+  margin-top: 1rem;
+  /* border-bottom: 1px solid var(--border-color); */ /* 根据用户需求移除 */
+}
+.history-group__title:first-child {
+  margin-top: 0;
+}
+
+.history-item {
+  background-color: transparent;
+  padding: 0.6rem 1rem;
+  margin-top: 0;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+  border-top-color: var(--border-color);
+  border-radius: 0;
+}
+.history-item:first-child {
+  border-top-color: transparent;
+}
+.history-item:hover {
+  background-color: rgba(107, 114, 128, 0.3);
+  border-top-color: transparent;
+}
+.history-item.is-active {
+  background-color: var(--primary-color);
+  border-radius: var(--radius-base);
+  border-color: var(--accent-color);
+  border-top-color: var(--accent-color);
+}
+
+/* 隐藏选中条目下方条目的上边框 */
+.history-item.is-active + .history-item {
+  border-top-color: transparent;
+}
+.history-item:has(+ .history-item.is-active) {
+  border-bottom-color: transparent;
+}
+
+.history-item__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .history-item__question is no longer used */
+
+.history-item__time {
+  font-size: 0.75rem;
+  color: var(--text-muted-color);
+}
+
+.page-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.page-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
 }

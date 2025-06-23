@@ -6,14 +6,22 @@
  * 1. 处理表单提交，向后端发送 SSE 请求并流式渲染返回结果。
  * 2. 管理本地存储的用户设置（API Key、模型、端点）。
  * 3. 提供基础 UI 工具函数（加载态、AI 设置面板切换等）。
+ * 4. 实现占卜历史记录的本地存储与展示。
  *
  * 所有函数均包含 Doxygen/JSDoc 风格注释，符合企业级审计要求。
  */
+import { initDB, addRecord, getAllRecords, getRecordById } from './db.js';
 
 (() => {
   'use strict';
 
   /** @typedef {HTMLElement} HTMLElementAlias */
+
+  // --- 全局状态变量 ---
+  /** @type {boolean} 是否保存当前对话 */
+  let isSaveEnabled = true;
+  /** @type {number|null} 当前显示的聊天记录ID */
+  let currentChatId = null;
 
   /**
    * 显示加载状态并更新文案。
@@ -124,6 +132,14 @@
   async function onSubmit(e) {
     e.preventDefault();
 
+    const statusBtn = document.getElementById('status-btn');
+    const statusIcon = statusBtn.querySelector('span');
+
+    // 立即更新图标为"新建会话"并禁用，防止在生成期间操作
+    statusIcon.textContent = 'chat_add_on';
+    statusIcon.style.color = ''; // 确保移除高亮
+    statusBtn.disabled = true;
+
     // 为结果区域添加激活状态类，用于控制分割线的显示
     document.querySelector('.results-area').classList.add('results-area--active');
 
@@ -214,6 +230,9 @@
     localStorage.setItem('divination_api_key', apiKey);
     localStorage.setItem('divination_ai_model', model);
     localStorage.setItem('divination_ai_endpoint', endpoint);
+
+    let finalAnswer = '';
+    let finalTitle = '';
 
     try {
       const resp = await fetch('/api/divination', {
@@ -329,6 +348,9 @@
           }
         }
       }
+      finalAnswer = answerMarkdown;
+      finalTitle = document.querySelector('.page-header__title').textContent;
+
     } catch (err) {
       if (err.name === 'AbortError') {
         answerEl.textContent += '\n\n[已停止] 用户中止生成';
@@ -339,13 +361,24 @@
       // 无论正常结束、错误或手动中止，均恢复按钮至"开始占卜"状态
       toggleBtn.removeEventListener('click', stopHandler);
       switchToStartState();
+      
+      // 恢复右上角状态按钮为可用
+      statusBtn.disabled = false;
+
+      // 占卜结束后，处理记录保存和状态更新
+      if (finalAnswer.trim()) {
+        if(isSaveEnabled) {
+          await saveCurrentDivination(finalTitle, finalAnswer, metaEl.textContent);
+        }
+        updateStatusIcon();
+      }
     }
   }
 
   /**
    * 应用初始化：绑定事件、读取配置、注册 Service Worker 等。
    */
-  function init() {
+  async function init() {
     // 绑定事件
     document.getElementById('ai-settings-toggle').addEventListener('click', toggleAiSettings);
     document.getElementById('divination-form').addEventListener('submit', onSubmit);
@@ -355,9 +388,21 @@
       e.stopPropagation(); // 防止触发标题栏点击事件
       toggleReasoningCollapse();
     });
+    // -- 新增历史记录事件绑定 --
+    document.getElementById('history-btn').addEventListener('click', () => toggleHistoryPanel(true));
+    document.getElementById('history-panel-close-btn').addEventListener('click', () => toggleHistoryPanel(false));
+    document.getElementById('page-overlay').addEventListener('click', () => toggleHistoryPanel(false));
+    document.getElementById('status-btn').addEventListener('click', handleStatusButtonClick);
 
     // 初始化配置
     loadLocalSettings();
+    // -- 新增数据库和状态初始化 --
+    try {
+        await initDB();
+    } catch (error) {
+        console.error("数据库初始化失败，历史记录功能将不可用。", error);
+    }
+    updateStatusIcon(); // 设置初始状态
 
     // 默认隐藏推理过程容器
     document.getElementById('reasoning-section').classList.add('reasoning-section--hidden');
@@ -485,6 +530,278 @@
 
     // 初始加载时也调用一次，以防有缓存内容
     adjustHeight();
+  }
+
+  // --- 历史记录相关功能 ---
+
+  /**
+   * 切换历史记录面板的显示状态
+   * @param {boolean} show - true 为显示, false 为隐藏
+   */
+  function toggleHistoryPanel(show) {
+    const panel = document.getElementById('history-panel');
+    const overlay = document.getElementById('page-overlay');
+    if (show) {
+      renderHistory(); // 显示前重新渲染列表
+      panel.classList.add('is-open');
+      overlay.classList.add('is-visible');
+    } else {
+      panel.classList.remove('is-open');
+      overlay.classList.remove('is-visible');
+    }
+  }
+
+  /**
+   * 获取并渲染所有历史记录到面板
+   * @private
+   */
+  async function renderHistory() {
+    const listEl = document.getElementById('history-list');
+    listEl.innerHTML = ''; // 清空现有列表
+    try {
+      const records = await getAllRecords();
+      if (!records || records.length === 0) {
+        listEl.innerHTML = '<p style="text-align: center; color: var(--text-muted-color);">暂无历史记录</p>';
+        return;
+      }
+      
+      const grouped = groupRecordsByTime(records);
+
+      const fragment = document.createDocumentFragment();
+      for (const groupName in grouped) {
+        const groupRecords = grouped[groupName];
+        
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'history-group__title';
+        groupTitle.textContent = groupName;
+        fragment.appendChild(groupTitle);
+
+        groupRecords.forEach(record => {
+          const itemEl = document.createElement('div');
+          itemEl.className = 'history-item';
+          itemEl.dataset.id = record.id;
+          itemEl.innerHTML = `
+            <div class="history-item__title">${DOMPurify.sanitize(record.title || '无标题')}</div>
+            <div class="history-item__time">${formatTimestamp(record.timestamp)}</div>
+          `;
+          itemEl.addEventListener('click', () => handleHistoryItemClick(record.id));
+          fragment.appendChild(itemEl);
+        });
+      }
+      listEl.appendChild(fragment);
+
+      // 如果当前正在查看某个历史记录，则在列表中高亮它
+      if (currentChatId) {
+        const activeItem = listEl.querySelector(`.history-item[data-id="${currentChatId}"]`);
+        if (activeItem) {
+          activeItem.classList.add('is-active');
+        }
+      }
+
+    } catch (error) {
+      console.error("获取历史记录失败:", error);
+      listEl.innerHTML = '<p>无法加载历史记录</p>';
+    }
+  }
+
+  /**
+   * 处理历史记录项的点击事件
+   * @param {number} id - 被点击记录的ID
+   * @private
+   */
+  async function handleHistoryItemClick(id) {
+    try {
+      const record = await getRecordById(id);
+      if (!record) return;
+
+      // 1. 清空当前聊天界面
+      clearChat();
+
+      // 2. 从记录加载新内容
+      document.querySelector('.page-header__title').textContent = record.title;
+      document.getElementById('output-meta').textContent = record.meta;
+      const answerEl = document.getElementById('output-answer');
+      answerEl.innerHTML = DOMPurify.sanitize(marked.parse(record.result));
+      document.getElementById('reasoning-section').classList.add('reasoning-section--hidden');
+      document.querySelector('.results-area').classList.add('results-area--active');
+      
+      // 3. 更新当前聊天ID和历史列表中的UI状态
+      currentChatId = record.id;
+      const allItems = document.querySelectorAll('.history-item');
+      allItems.forEach(item => item.classList.remove('is-active'));
+      const currentItemEl = document.querySelector(`.history-item[data-id="${id}"]`);
+      if(currentItemEl) currentItemEl.classList.add('is-active');
+
+      // 4. 更新全局UI状态并关闭面板
+      updateStatusIcon();
+      toggleHistoryPanel(false);
+
+    } catch (error) {
+      console.error("加载记录失败:", error);
+    }
+  }
+
+  /**
+   * 将时间戳格式化为 "YYYY年MM月DD日 HH:mm"
+   * @param {number} ts - 时间戳
+   * @returns {string} 格式化后的日期字符串
+   */
+  function formatTimestamp(ts) {
+    const date = new Date(ts);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+  }
+
+  /**
+   * 将记录按时间分组：今天、昨天、最近、七天前
+   * @param {Array<object>} records - 待分组的记录数组
+   * @returns {object} 分组后的对象
+   */
+  function groupRecordsByTime(records) {
+      const groups = { '今天': [], '昨天': [], '最近': [], '七天前': [] };
+      
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayTime = yesterday.getTime();
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoTime = sevenDaysAgo.getTime();
+
+      for (const record of records) {
+          const recordTime = new Date(record.timestamp).setHours(0, 0, 0, 0);
+
+          if (recordTime === today) {
+              groups['今天'].push(record);
+          } else if (recordTime === yesterdayTime) {
+              groups['昨天'].push(record);
+          } else if (recordTime > sevenDaysAgoTime) {
+              groups['最近'].push(record);
+          } else {
+              groups['七天前'].push(record);
+          }
+      }
+
+      // 清理空分组并返回
+      const finalGroups = {};
+      if (groups['今天'].length > 0) finalGroups['今天'] = groups['今天'];
+      if (groups['昨天'].length > 0) finalGroups['昨天'] = groups['昨天'];
+      if (groups['最近'].length > 0) finalGroups['最近'] = groups['最近'];
+      if (groups['七天前'].length > 0) finalGroups['七天前'] = groups['七天前'];
+      
+      return finalGroups;
+  }
+
+  /**
+   * 保存当前占卜结果到数据库
+   * @param {string} title - AI生成的标题
+   * @param {string} result - AI生成的完整回复
+   * @param {string} meta - 卦象元数据
+   */
+  async function saveCurrentDivination(title, result, meta) {
+    const record = {
+      title,
+      result,
+      meta,
+      timestamp: Date.now()
+    };
+    try {
+      const newId = await addRecord(record);
+      currentChatId = newId;
+      console.log('记录已保存, ID:', newId);
+    } catch (error) {
+      console.error('保存记录失败:', error);
+    }
+  }
+
+  /**
+   * 更新右上角状态图标的逻辑
+   * @private
+   */
+  function updateStatusIcon() {
+    const statusBtn = document.getElementById('status-btn');
+    const statusIcon = statusBtn.querySelector('span');
+    const answerEl = document.getElementById('output-answer');
+
+    // 检查是否有内容（answer区域或meta区域）
+    const hasContent = answerEl.innerHTML.trim() !== '' || currentChatId !== null;
+
+    if (hasContent) {
+      statusIcon.textContent = 'chat_add_on'; // 有内容时：新建对话
+      statusIcon.style.color = ''; // 确保重置颜色
+      statusBtn.dataset.action = 'new';
+      // 恢复保存开关为开启状态，以便下次默认保存
+      isSaveEnabled = true; 
+    } else {
+      // 无内容时：控制是否保存
+      statusIcon.textContent = 'comments_disabled';
+      if (isSaveEnabled) {
+        statusIcon.style.color = ''; // 默认颜色，表示"将保存"
+        statusBtn.dataset.action = 'disable-save';
+      } else {
+        statusIcon.style.color = 'var(--button-active-bg)'; // 高亮表示"不保存"
+        statusBtn.dataset.action = 'enable-save';
+      }
+    }
+  }
+
+  /**
+   * 处理右上角状态按钮的点击事件
+   * @private
+   */
+  function handleStatusButtonClick() {
+    const action = document.getElementById('status-btn').dataset.action;
+    
+    switch (action) {
+      case 'new':
+        clearChat();
+        break;
+      case 'disable-save':
+        isSaveEnabled = false;
+        updateStatusIcon();
+        break;
+      case 'enable-save':
+        isSaveEnabled = true;
+        updateStatusIcon();
+        break;
+    }
+  }
+  
+  /**
+   * 清空当前聊天界面和状态
+   * @private
+   */
+  function clearChat() {
+    document.getElementById('question').value = '';
+    document.getElementById('n1').value = '';
+    document.getElementById('n2').value = '';
+    document.getElementById('n3').value = '';
+    document.querySelector('.page-header__title').textContent = 'AI小六壬';
+    document.getElementById('output-meta').textContent = '';
+    document.getElementById('output-answer').innerHTML = '';
+    document.getElementById('output-reasoning').innerHTML = '';
+    
+    const reasoningSection = document.getElementById('reasoning-section');
+    reasoningSection.classList.add('reasoning-section--hidden');
+    // 移除激活状态，隐藏结果区的分割线
+    document.querySelector('.results-area').classList.remove('results-area--active');
+    
+    // 清除历史列表中的选中状态
+    const activeHistoryItem = document.querySelector('.history-item.is-active');
+    if (activeHistoryItem) {
+      activeHistoryItem.classList.remove('is-active');
+    }
+
+    currentChatId = null;
+    isSaveEnabled = true; // 新聊天默认开启保存
+    
+    updateStatusIcon(); // 更新图标状态为"无内容"
+    handleTextareaAutoResize(); // 重置输入框高度
   }
 
   document.addEventListener('DOMContentLoaded', init);
