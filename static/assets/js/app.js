@@ -935,10 +935,14 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
       const deltaTime = Date.now() - startTime;
       const velocity = Math.abs(deltaX) / deltaTime;
       
+      // 无论滑动结果如何，最终都清除内联 transform，将动画控制权交还给 CSS
+      contentEl.style.transform = '';
+
       // 根据滑动距离或速度决定是否显示删除按钮
       if ((deltaX < -threshold) || (velocity > 0.3 && deltaX < 0)) {
         itemEl.classList.add('history-item--swiped');
       } else {
+        // resetSwipe 内部会移除 'history-item--swiped' 类
         resetSwipe();
       }
     }
