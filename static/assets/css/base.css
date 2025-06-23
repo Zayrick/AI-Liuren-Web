@@ -44,6 +44,7 @@
   --primary-color: var(--color-dark-900);
   --secondary-color: var(--color-dark-800);
   --accent-color: var(--color-dark-600);
+  --accent-color-rgb: 71, 85, 105; /* --color-dark-600 的RGB值 */
   --text-color: var(--color-white);
   --text-muted-color: var(--color-white-60);
   --border-color: var(--color-white-8);

@@ -131,8 +131,8 @@ import {
     metaEl.textContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
     clearLoading(metaEl);
 
-    showLoading(reasoningEl, '等待');
-    showLoading(answerEl, '等待');
+    showLoading(reasoningEl, '等待响应中', 'thinking');
+    showLoading(answerEl, '等待响应中', 'thinking');
 
     /** @type {HTMLButtonElement} 单一开始/停止按钮 */
     const toggleBtn = document.getElementById('toggle-btn');
@@ -176,15 +176,19 @@ import {
     let reasoningMarkdown = '';
     let answerMarkdown = '';
     let isTitleStarted = false;
+    let isReasoningStarted = false; // 跟踪思考过程是否已开始
+    let hasReasoningCompleted = false; // 跟踪思考过程是否已完成
     // ---
 
     // 切换为停止状态，并绑定一次性停止处理器
     switchToStopState();
+    toggleBtn.classList.add('button--processing');
 
     const stopHandler = (evt) => {
       evt.preventDefault();
       controller.abort();
       toggleBtn.disabled = true;
+      toggleBtn.classList.remove('button--processing');
     };
     toggleBtn.addEventListener('click', stopHandler, { once: true });
 
@@ -227,6 +231,8 @@ import {
 
       if (!resp.ok || !resp.body) {
         metaEl.textContent = `请求失败：${resp.status} ${resp.statusText}`;
+        clearLoading(reasoningEl);
+        clearLoading(answerEl);
         return;
       }
 
@@ -271,13 +277,15 @@ import {
             case 'reasoning': {
               if (!isReasoningEnabled()) break;
 
-              // 首次收到 reasoning 数据时，移除隐藏类
+              // 首次收到 reasoning 数据时，移除隐藏类并清除等待状态
               if (reasoningSection.classList.contains('reasoning-section--hidden')) {
                 reasoningSection.classList.remove('reasoning-section--hidden');
                 clearLoading(reasoningEl);
+                clearLoading(answerEl); // 开始思考后清除答案区域的等待状态
                 updateReasoningTitle('thinking');
                 // 确保思考过程展开显示
                 document.querySelector('.reasoning-section').classList.remove('collapsed');
+                isReasoningStarted = true;
               }
               reasoningMarkdown += dataStr.replace(/\\n/g, '\n');
               const fixedReasoning = fixMarkdownHeadings(reasoningMarkdown);
@@ -285,13 +293,14 @@ import {
               break;
             }
             case 'answer': {
-              if (answerEl.classList.contains('loading')) {
-                // 首次进入 answer 流，标记思考完成并可自动折叠
-                if (isReasoningEnabled() && reasoningEl.textContent.trim()) {
-                  updateReasoningTitle('completed');
-                  autoCollapseReasoning();
-                }
+              // 首次进入answer流时，如果思考过程已开始且尚未标记完成，则立即标记完成
+              if (isReasoningStarted && !hasReasoningCompleted) {
+                updateReasoningTitle('completed');
+                autoCollapseReasoning();
+                hasReasoningCompleted = true;
+              }
 
+              if (answerEl.classList.contains('loading')) {
                 clearLoading(answerEl);
               }
               answerMarkdown += dataStr.replace(/\\n/g, '\n');
@@ -320,10 +329,17 @@ import {
     } finally {
       // 无论正常结束、错误或手动中止，均恢复按钮至"开始占卜"状态
       toggleBtn.removeEventListener('click', stopHandler);
+      toggleBtn.classList.remove('button--processing');
       switchToStartState();
       
       // 恢复右上角状态按钮为可用
       statusBtn.disabled = false;
+
+      // 如果思考过程已经开始，但在 stream 结束时仍未标记为完成，则在此处最终标记
+      if (isReasoningStarted && !hasReasoningCompleted) {
+        updateReasoningTitle('completed');
+        autoCollapseReasoning();
+      }
 
       // 占卜结束后，处理记录保存和状态更新
       if (finalAnswer.trim()) {

@@ -14,11 +14,36 @@
  * 显示加载状态并更新文案。
  * @param {HTMLElementAlias} element 目标元素
  * @param {string} [text='处理中'] 文案前缀
+ * @param {string} [type='default'] 加载类型：'thinking' | 'default'
  */
-export function showLoading(element, text = '处理中') {
+export function showLoading(element, text = '处理中', type = 'default') {
   if (!element) return;
-  element.textContent = `${text}...`;
+  
+  // 清除之前的内容和状态类
+  element.classList.remove('loading', 'reasoning-thinking', 'processing');
+  
+  // 创建加载动画容器
+  const loadingContainer = document.createElement('div');
+  loadingContainer.className = 'loading-container';
+  
+  // 创建文本容器
+  const textContainer = document.createElement('span');
+  textContainer.className = 'loading-text';
+  textContainer.textContent = text;
+  
+  // 组装结构
+  loadingContainer.appendChild(textContainer);
+  
+  // 清空元素并添加新的加载内容
+  element.innerHTML = '';
+  element.appendChild(loadingContainer);
+  
+  // 添加相应的状态类
   element.classList.add('loading');
+  if (type === 'thinking') {
+    // 直接在元素本身添加统一的思考中动画类
+    element.classList.add('reasoning-thinking');
+  }
 }
 
 /**
@@ -27,7 +52,13 @@ export function showLoading(element, text = '处理中') {
  */
 export function clearLoading(element) {
   if (!element) return;
-  element.classList.remove('loading');
+  element.classList.remove('loading', 'reasoning-thinking', 'processing');
+  
+  // 如果内容只是加载动画，清空内容
+  const loadingContainer = element.querySelector('.loading-container');
+  if (loadingContainer && loadingContainer.parentNode === element && element.children.length === 1) {
+    element.innerHTML = '';
+  }
 }
 
 /**
@@ -71,14 +102,37 @@ export function updateReasoningTitle(status) {
   if (!titleEl) return;
   
   const titleClasses = titleEl.classList;
+  const reasoningBox = titleEl.closest('.reasoning-box');
+  
+  // 清除所有状态类
   titleClasses.remove('reasoning-thinking', 'reasoning-completed');
+  if (reasoningBox) {
+    reasoningBox.classList.remove('reasoning-thinking', 'reasoning-completed');
+  }
   
   if (status === 'thinking') {
-    titleEl.textContent = '思考中';
+    // 为思考状态创建动画加载效果
+    const loadingContainer = document.createElement('div');
+    loadingContainer.className = 'loading-container';
+    
+    const textContainer = document.createElement('span');
+    textContainer.className = 'loading-text';
+    textContainer.textContent = '思考中';
+    
+    loadingContainer.appendChild(textContainer);
+    
+    titleEl.innerHTML = '';
+    titleEl.appendChild(loadingContainer);
     titleClasses.add('reasoning-thinking');
+    if (reasoningBox) {
+      reasoningBox.classList.add('reasoning-thinking');
+    }
   } else if (status === 'completed') {
     titleEl.textContent = '思考完成';
     titleClasses.add('reasoning-completed');
+    if (reasoningBox) {
+      reasoningBox.classList.add('reasoning-completed');
+    }
   }
 }
 
@@ -89,9 +143,8 @@ export function autoCollapseReasoning() {
   const reasoningSection = document.querySelector('.reasoning-section');
   if (!reasoningSection) return;
   
-  setTimeout(() => {
-    reasoningSection.classList.add('collapsed');
-  }, 1000);
+  // 立即收起思考过程，不延迟
+  reasoningSection.classList.add('collapsed');
 }
 
 /**
