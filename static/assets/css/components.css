@@ -317,8 +317,16 @@
   overflow: hidden; /* 防止内容在动画过程中溢出，破坏布局 */
 }
 
+/* 为 "思考过程" 部分的出现添加过渡动画 */
+.reasoning-section {
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out,
+    visibility 0.4s, max-height 0.4s ease-in-out, margin-bottom 0.4s ease-in-out;
+  max-height: 100vh; /* 为高度动画设置一个足够大的目标值 */
+  margin-bottom: 1.5rem; /* 与其他结果项保持一致的底部间距 */
+  overflow: hidden; /* 关键：允许 max-height 动画生效 */
+}
+
 /* 思考过程区域 - 旧样式清理 */
-.reasoning-section,
 .reasoning-section__header,
 .reasoning-section__content-wrapper,
 .reasoning-section__content-box,
@@ -354,8 +362,6 @@
   -webkit-text-fill-color: transparent;
   animation: shimmer 2s ease-in-out infinite;
 }
-
-
 
 /* 思考状态的特殊动画 */
 .reasoning-thinking .loading-container {
@@ -466,7 +472,12 @@
 
 /* 用于JS控制"思考过程"部分的显示/隐藏 */
 .reasoning-section--hidden {
-  display: none;
+  /* display: none; */
+  opacity: 0;
+  transform: translateY(20px);
+  visibility: hidden;
+  max-height: 0; /* 将高度折叠为0 */
+  margin-bottom: 0; /* 移除外边距 */
 }
 
 /* 
@@ -475,7 +486,7 @@
  */
 .results-area--active .reasoning-section--hidden + .result-item--answer {
   border-top: 1px solid var(--border-color);
-  margin-top: 1.5rem;
+  margin-top: 0;
   padding-top: 1.5rem;
 }
 
