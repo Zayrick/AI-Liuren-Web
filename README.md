@@ -1,6 +1,6 @@
-# 小六壬 AI 占卜 – Cloudflare Workers / PWA
+# 云占小六壬 – Cloudflare Workers / PWA
 
-> 基于 **Cloudflare Workers** ✕ **AI 大模型** 的小六壬在线占卜应用，并提供离线访问（PWA）。
+> 基于 **Cloudflare Workers** ✕ **AI 大模型** 的在线占卜应用，并提供离线访问（PWA）。
 
 ---
 
@@ -134,7 +134,7 @@ Content-Type: application/json
 npm run deploy     # 等价于：wrangler deploy
 ```
 
-部署完成后，Wrangler 会输出 Workers URL，例如 `https://liuyao-ai.<subdomain>.workers.dev`，也可绑定自定义域名。
+部署完成后，Wrangler 会输出 Workers URL，例如 `https://yunzhan-xiaoliuren.<subdomain>.workers.dev`，也可绑定自定义域名。
 
 ---
 
@@ -155,4 +155,4 @@ npm run deploy     # 等价于：wrangler deploy
 
 ---
 
-> 🎉 欢迎 Issue / PR，与我们一同完善 “小六壬 AI 占卜”！ 
+> 🎉 欢迎 Issue / PR，与我们一同完善 “云占小六壬”！ 

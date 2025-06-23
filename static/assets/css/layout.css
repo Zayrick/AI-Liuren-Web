@@ -86,6 +86,14 @@
   padding-bottom: 0.5rem;
 }
 
+/* 
+ * 默认隐藏由HTML内联样式处理 (style="display: none;")。
+ * 此处仅定义激活状态，以覆盖内联样式。
+ */
+.results-area--active {
+  display: block !important;
+}
+
 /* --- 5. 桌面端样式 (min-width: 768px) --- */
 @media (min-width: 768px) {
   body {
@@ -128,6 +136,11 @@
     grid-area: content;
     overflow-y: visible;
     padding: 0;
+  }
+  
+  /* 在桌面端，结果区域需要永久可见，覆盖内联的 display: none */
+  .results-area {
+    display: block !important;
   }
   
   .input-area {
