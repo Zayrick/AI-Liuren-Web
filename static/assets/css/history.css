@@ -1,0 +1,283 @@
+/**
+ * @file history.css
+ * @brief 包含历史记录侧边栏的所有样式，包括面板、搜索、列表和动画。
+ */
+
+/* --- 8. 历史记录面板 --- */
+.history-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 85%;
+  max-width: 320px;
+  /* 使用更深的半透明背景，增加高级感 */
+  background-color: var(--bg-dark-900-85); /* 更深的背景色 */
+  backdrop-filter: blur(var(--blur-strong)); /* 增强毛玻璃效果 */
+  -webkit-backdrop-filter: blur(var(--blur-strong));
+  z-index: 2000;
+  transform: translateX(-100%);
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.6s;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 4px 0px 25px var(--color-black-30); /* 增强阴影效果 */
+  visibility: hidden; /* 隐藏时不可见 */
+}
+
+.history-panel.is-open {
+  transform: translateX(0);
+  visibility: visible; /* 打开时可见 */
+}
+
+.history-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  /* border-bottom: 1px solid var(--border-color); */
+  flex-shrink: 0;
+}
+
+.history-panel__header h2 {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.history-panel__close-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-panel__search {
+  flex-shrink: 0;
+  padding: 0 1rem 0.3rem 1rem;
+}
+
+.history-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-dark-800-60); /* 使用半透明背景增加层次感 */
+  border: 1px solid var(--color-white-15); /* 稍微增加边框透明度 */
+  border-radius: var(--radius-base);
+  overflow: hidden;
+}
+
+.history-search__input {
+  flex-grow: 1;
+  padding: 0.5rem 0.7rem;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  background-color: transparent;
+  border: none;
+  color: var(--text-color);
+  font-family: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.history-search__input:focus {
+  outline: none;
+}
+
+.history-search__input::placeholder {
+  color: var(--text-muted-color);
+}
+
+.history-search__clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted-color);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.history-search__clear:hover {
+  color: var(--text-color);
+  background-color: var(--color-white-10);
+}
+
+.history-search__clear.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.history-search__clear .material-symbols-rounded {
+  font-size: 18px;
+}
+
+.history-panel__content {
+  flex-grow: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem;
+}
+
+.history-group__title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted-color);
+  text-transform: uppercase;
+  padding: 0.5rem 0;
+  margin-top: 1rem;
+  /* border-bottom: 1px solid var(--border-color); */ /* 根据用户需求移除 */
+}
+.history-group__title:first-child {
+  margin-top: 0;
+}
+
+.history-item {
+  background-color: transparent;
+  padding: 0.6rem 1rem;
+  margin-top: 0;
+  cursor: pointer;
+  /* 优化过渡效果：仅对必要的属性添加过渡，避免 all 造成的性能问题和视觉闪烁 */
+  transition: background-color 0.2s ease-in-out, 
+              border-color 0.2s ease-in-out,
+              border-radius 0.2s ease-in-out;
+  border: 1px solid transparent;
+  border-top-color: var(--border-color);
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
+.history-item:first-child {
+  border-top-color: transparent;
+}
+
+/* 滑动删除功能样式 */
+.history-item__content {
+  position: relative;
+  z-index: 2;
+  /* 移除 background-color: inherit，避免继承问题 */
+  /* 仅对 transform 添加过渡，避免背景色过渡造成的视觉问题 */
+  transition: transform 0.3s ease;
+}
+
+@media (hover: hover) {
+  .history-item:hover {
+    background-color: var(--color-white-8); /* 在深色背景上使用白色半透明效果 */
+    border-top-color: transparent;
+  }
+  
+  /* 移除子元素的背景色设置，避免重复渲染 */
+}
+
+.history-item.is-active {
+  background-color: var(--color-blue-500-15); /* 使用半透明的蓝色高亮 */
+  border-radius: var(--radius-base);
+  border-color: var(--color-blue-500-50); /* 半透明的边框 */
+  border-top-color: var(--color-blue-500-50);
+}
+
+/* 移除子元素的背景色设置，避免重复渲染 */
+
+/* 隐藏选中条目下方条目的上边框 */
+.history-item.is-active + .history-item {
+  border-top-color: transparent;
+}
+
+.history-item__delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 80px;
+  background-color: var(--color-red-500);
+  color: var(--color-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.history-item--swiped .history-item__content {
+  transform: translateX(-80px);
+  /* 移除背景色，让内容完全透明，遵循父元素背景 */
+}
+
+/* 选中状态下滑动时，移除背景色，让内容透明 */
+.history-item.is-active.history-item--swiped .history-item__content {
+  /* 不设置背景色，让内容完全透明 */
+}
+
+/* hover状态下滑动时，保持hover状态的背景色 */
+@media (hover: hover) {
+  .history-item:hover.history-item--swiped .history-item__content {
+    background-color: var(--color-white-8); /* 保持hover状态的白色半透明效果 */
+  }
+}
+
+.history-item--swiped .history-item__delete {
+  transform: translateX(0);
+}
+
+.history-item--deleting {
+  animation: slideOutLeft 0.3s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes slideOutLeft {
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.history-item__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .history-item__question is no longer used */
+
+.history-item__time {
+  font-size: 0.75rem;
+  color: var(--text-muted-color);
+}
+
+.page-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-black-50);
+  z-index: 1999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+} 

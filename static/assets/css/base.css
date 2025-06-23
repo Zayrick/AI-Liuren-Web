@@ -1,0 +1,81 @@
+/**
+ * @file base.css
+ * @brief 包含项目的基础样式，包括变量定义、全局重置和基础标签样式。
+ */
+
+/* --- 1. 根与变量定义 --- */
+:root {
+  /* 基础颜色定义 */
+  --color-dark-900: #0f172a; /* 最深色 */
+  --color-dark-800: #1e293b; /* 次深色 */
+  --color-dark-700: #334155; /* 中深色 */
+  --color-dark-600: #475569; /* 浅深色 */
+  --color-blue-500: #3b82f6; /* 主要蓝色 */
+  --color-blue-500-15: rgba(59, 130, 246, 0.15); /* 蓝色15%透明度 */
+  --color-blue-500-50: rgba(59, 130, 246, 0.5); /* 蓝色50%透明度 */
+  --color-white: #ffffff; /* 纯白色 */
+  --color-white-60: rgba(255, 255, 255, 0.6); /* 白色60%透明度 */
+  --color-white-15: rgba(255, 255, 255, 0.15); /* 白色15%透明度 */
+  --color-white-12: rgba(255, 255, 255, 0.12); /* 白色12%透明度 */
+  --color-white-10: rgba(255, 255, 255, 0.1); /* 白色10%透明度 */
+  --color-white-8: rgba(255, 255, 255, 0.08); /* 白色8%透明度 */
+  --color-white-6: rgba(255, 255, 255, 0.06); /* 白色6%透明度 */
+  --color-black-10: rgba(0, 0, 0, 0.1); /* 黑色10%透明度 */
+  --color-black-20: rgba(0, 0, 0, 0.2); /* 黑色20%透明度 */
+  --color-black-25: rgba(0, 0, 0, 0.25); /* 黑色25%透明度 */
+  --color-black-35: rgba(0, 0, 0, 0.35); /* 黑色35%透明度 */
+  --color-black-50: rgba(0, 0, 0, 0.5); /* 黑色50%透明度 */
+  --color-red-500: #ef4444; /* 红色（删除按钮） */
+  
+  /* 透明背景色定义 */
+  --bg-dark-900-95: rgba(15, 23, 42, 0.95); /* 深色95%透明度 */
+  --bg-dark-900-85: rgba(17, 24, 39, 0.85); /* 深色85%透明度 */
+  --bg-dark-900-75: rgba(15, 23, 42, 0.75); /* 深色75%透明度 */
+  --bg-dark-900-60: rgba(15, 23, 42, 0.6); /* 深色60%透明度 */
+  --bg-dark-900-50: rgba(15, 23, 42, 0.5); /* 深色50%透明度 */
+  --bg-dark-800-90: rgba(31, 41, 55, 0.9); /* 次深色90%透明度 */
+  --bg-dark-800-60: rgba(31, 41, 55, 0.6); /* 次深色60%透明度 */
+  --bg-dark-700-60: rgba(30, 41, 59, 0.6); /* 中深色60%透明度 */
+  
+  /* 额外的透明度变量 */
+  --color-black-30: rgba(0, 0, 0, 0.3); /* 黑色30%透明度 */
+  
+  /* 语义化颜色定义 */
+  --primary-color: var(--color-dark-900);
+  --secondary-color: var(--color-dark-800);
+  --accent-color: var(--color-dark-600);
+  --text-color: var(--color-white);
+  --text-muted-color: var(--color-white-60);
+  --border-color: var(--color-white-8);
+  --background-blur: var(--bg-dark-900-75);
+  --button-active-bg: var(--color-blue-500);
+  
+  /* 其他变量 */
+  --radius-base: 8px;
+  --transition-speed: 0.2s;
+  
+  /* 毛玻璃效果 */
+  --blur-base: 10px;
+  --blur-strong: 20px;
+}
+
+/* --- 2. 全局重置与基础样式 --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  height: 100%; /* 关键：为全高布局提供基础 */
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--primary-color);
+  color: var(--text-color);
+  height: 100%; /* 关键：确保 body 严格等于视口高度 */
+  /* 在移动端锁定 body 滚动，将滚动控制在 page-content 内部 */
+  overflow: hidden;
+} 

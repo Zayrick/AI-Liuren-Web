@@ -1,18 +1,30 @@
 /**
  * @file app.js
- * @brief 小六 AI 占卜前端逻辑脚本
+ * @brief 小六 AI 占卜前端逻辑主脚本
  *
  * 职责：
- * 1. 处理表单提交，向后端发送 SSE 请求并流式渲染返回结果。
- * 2. 管理本地存储的用户设置（API Key、模型、端点）。
- * 3. 提供基础 UI 工具函数（加载态、AI 设置面板切换等）。
- * 4. 实现占卜历史记录的本地存储与展示。
+ * 1. 初始化所有模块 (UI, 历史记录, 数据库)。
+ * 2. 管理核心应用状态 (当前会话 ID, 保存开关等)。
+ * 3. 处理表单提交，向后端发送 SSE 请求并流式渲染返回结果。
+ * 4. 提供占卜会话的保存、加载和清空功能。
  *
  * 所有函数均包含 Doxygen/JSDoc 风格注释，符合企业级审计要求。
  */
-import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRecords } from './db.js';
+import { initDB, addRecord } from './db.js';
 import { generateHexagram } from './hexagram.js';
 import { getFullBazi } from './ganzhi.js';
+import { initHistory, setCurrentChatId, toggleHistoryPanel } from './history.js';
+import {
+  showLoading,
+  clearLoading,
+  toggleAiSettings,
+  adjustContentPadding,
+  handleTextareaAutoResize,
+  toggleReasoningCollapse,
+  updateReasoningTitle,
+  autoCollapseReasoning,
+  fixMarkdownHeadings
+} from './ui.js';
 
 (() => {
   'use strict';
@@ -28,48 +40,6 @@ import { getFullBazi } from './ganzhi.js';
   let currentSearchKeyword = '';
   /** @type {number|null} 搜索防抖定时器ID */
   let searchDebounceTimer = null;
-
-  /**
-   * 显示加载状态并更新文案。
-   * @param {HTMLElementAlias} element 目标元素
-   * @param {string} [text='处理中'] 文案前缀
-   */
-  function showLoading(element, text = '处理中') {
-    element.textContent = `${text}...`;
-    element.classList.add('loading');
-  }
-
-  /**
-   * 清除加载状态。
-   * @param {HTMLElementAlias} element 目标元素
-   */
-  function clearLoading(element) {
-    element.classList.remove('loading');
-  }
-
-  /**
-   * 切换 AI 设置面板显示/隐藏。
-   * 由右侧齿轮按钮触发：展开时显示整个容器，折叠时完全隐藏。
-   * @param {MouseEvent} [evt]
-   */
-  function toggleAiSettings(evt) {
-    const container = document.querySelector('.ai-settings');
-    const content = document.getElementById('ai-settings-content');
-    const chevron = document.getElementById('chevron');
-
-    const isHidden = container.style.display === 'none' || getComputedStyle(container).display === 'none';
-    if (isHidden) {
-      // 展开：显示容器并激活内容
-      container.style.display = 'block';
-      content.classList.add('active');
-      chevron.classList.add('rotated');
-    } else {
-      // 折叠：隐藏容器并关闭内容
-      container.style.display = 'none';
-      content.classList.remove('active');
-      chevron.classList.remove('rotated');
-    }
-  }
 
   /**
    * 读取 localStorage 中的用户配置并填充到输入框。 
@@ -115,19 +85,6 @@ import { getFullBazi } from './ganzhi.js';
   function isReasoningEnabled() {
     const button = document.getElementById('reasoning-toggle');
     return button.getAttribute('data-active') === 'true';
-  }
-
-  /**
-   * 修复不符合 GFM 规范的 Markdown 标题。
-   * marked.js 遵循的 GFM 规范要求 # 和标题文本之间必须有空格。
-   * 此函数为缺失空格的标题（如 ###标题）自动添加空格。
-   * @param {string} markdown
-   * @returns {string}
-   */
-  function fixMarkdownHeadings(markdown) {
-    // 使用正则表达式在 # 和标题文本之间插入空格
-    // m flag: multiline mode, ^ matches start of line
-    return markdown.replace(/^(#+)([^ #\n\r])/gm, '$1 $2');
   }
 
   /**
@@ -385,43 +342,41 @@ import { getFullBazi } from './ganzhi.js';
    * 应用初始化：绑定事件、读取配置、注册 Service Worker 等。
    */
   async function init() {
-    // 绑定事件
+    // 绑定核心事件
     document.getElementById('ai-settings-toggle').addEventListener('click', toggleAiSettings);
     document.getElementById('divination-form').addEventListener('submit', onSubmit);
     document.getElementById('reasoning-toggle').addEventListener('click', onReasoningToggle);
     document.getElementById('reasoning-header').addEventListener('click', toggleReasoningCollapse);
     document.getElementById('reasoning-collapse-btn').addEventListener('click', (e) => {
-      e.stopPropagation(); // 防止触发标题栏点击事件
+      e.stopPropagation();
       toggleReasoningCollapse();
     });
-    // -- 新增历史记录事件绑定 --
-    document.getElementById('history-btn').addEventListener('click', () => toggleHistoryPanel(true));
-    document.getElementById('history-panel-close-btn').addEventListener('click', () => {
-      // 关闭时清空当前对话，实现"新占卜"功能
-      clearChat();
-      toggleHistoryPanel(false);
-    });
-    document.getElementById('page-overlay').addEventListener('click', () => toggleHistoryPanel(false));
     document.getElementById('status-btn').addEventListener('click', handleStatusButtonClick);
     
-    // -- 搜索功能事件绑定 --
-    document.getElementById('history-search-input').addEventListener('input', handleSearchInput);
-    document.getElementById('history-search-clear').addEventListener('click', clearSearch);
+    // 初始化历史记录模块
+    initHistory({
+      onItemClick: loadChat,
+      onItemDelete: (deletedId) => {
+        if (currentChatId === deletedId) {
+          clearChat();
+        }
+      },
+      onPanelClose: clearChat,
+    });
 
     // 初始化配置
     loadLocalSettings();
-    // -- 新增数据库和状态初始化 --
-    try {
-        await initDB();
-    } catch (error) {
-        console.error("数据库初始化失败，历史记录功能将不可用。", error);
-    }
-    updateStatusIcon(); // 设置初始状态
-
-    // 默认隐藏推理过程容器
-    document.getElementById('reasoning-section').classList.add('reasoning-section--hidden');
     
-    // 确保思考过程默认展开状态
+    // 初始化数据库
+    try {
+      await initDB();
+    } catch (error) {
+      console.error("数据库初始化失败，历史记录功能将不可用。", error);
+    }
+    
+    // 初始化UI状态
+    updateStatusIcon();
+    document.getElementById('reasoning-section').classList.add('reasoning-section--hidden');
     document.querySelector('.reasoning-section').classList.remove('collapsed');
 
     // 注册 Service Worker
@@ -433,352 +388,56 @@ import { getFullBazi } from './ganzhi.js';
     const headerEl = document.getElementById('ai-settings-header');
     headerEl.style.cursor = 'default';
 
-    // 动态调整内容区域的底部 padding 以适应输入区域
+    // 初始化动态UI调整
     adjustContentPadding();
-
-    // 初始化文本域自动高度功能
     handleTextareaAutoResize();
   }
 
   /**
-   * 切换思考过程的折叠状态。
-   * @private
+   * 从历史记录中加载一个会话
+   * @param {object} record - 从数据库获取的记录对象
    */
-  function toggleReasoningCollapse() {
-    const reasoningSection = document.querySelector('.reasoning-section');
-    const isCollapsed = reasoningSection.classList.contains('collapsed');
+  function loadChat(record) {
+    if (!record) return;
+
+    clearChat();
+
+    document.querySelector('.page-header__title').textContent = record.title;
+    document.getElementById('output-meta').textContent = record.meta;
+    const answerEl = document.getElementById('output-answer');
     
-    if (isCollapsed) {
-      reasoningSection.classList.remove('collapsed');
-    } else {
-      reasoningSection.classList.add('collapsed');
-    }
-  }
-
-  /**
-   * 更新思考过程标题文案。
-   * @param {string} status 状态：'thinking' | 'completed'
-   * @private
-   */
-  function updateReasoningTitle(status) {
-    const titleEl = document.getElementById('reasoning-title');
-    const titleClasses = titleEl.classList;
+    const isHTML = (str) => /<[^>]*>/.test(str);
     
-    // 清除之前的状态类
-    titleClasses.remove('reasoning-thinking', 'reasoning-completed');
-    
-    if (status === 'thinking') {
-      titleEl.textContent = '思考中';
-      titleClasses.add('reasoning-thinking');
-    } else if (status === 'completed') {
-      titleEl.textContent = '思考完成';
-      titleClasses.add('reasoning-completed');
-    }
-  }
-
-  /**
-   * 自动折叠思考过程（仅在思考完成后调用）。
-   * @private
-   */
-  function autoCollapseReasoning() {
-    const reasoningSection = document.querySelector('.reasoning-section');
-    // 延迟1秒后自动折叠，给用户时间看到"思考完成"状态
-    setTimeout(() => {
-      reasoningSection.classList.add('collapsed');
-    }, 1000);
-  }
-
-  /**
-   * 动态调整内容区域的内边距，以完美适配顶部页头和底部输入区域的高度。
-   * 此函数使用 ResizeObserver 监测页头和输入区域的高度变化，
-   * 确保内容不会被遮挡，同时避免了硬编码带来的设备兼容性问题。
-   * @private
-   */
-  function adjustContentPadding() {
-    const pageContainer = document.querySelector('.page-container');
-    const pageContent = document.querySelector('.page-content');
-    const pageHeader = document.querySelector('.page-header');
-    const inputArea = document.querySelector('.input-area');
-
-    if (!pageContainer || !pageContent || !pageHeader || !inputArea) return;
-
-    const observer = new ResizeObserver(() => {
-      // 只要有任何一个被监测元素尺寸变化，就重新计算所有动态 padding
-      if (window.getComputedStyle(pageContainer).display !== 'grid') {
-        const headerHeight = pageHeader.getBoundingClientRect().height;
-        const inputAreaHeight = inputArea.getBoundingClientRect().height;
-
-        // 为上下都增加 1rem 的舒适间距
-        pageContent.style.paddingTop = `calc(${headerHeight}px + 1rem)`;
-        // 同时考虑 inputArea 的高度、安全区域和舒适间距，彻底解决遮挡
-        pageContent.style.paddingBottom = `calc(${inputAreaHeight}px + env(safe-area-inset-bottom) + 1rem)`;
+    if (record.result) {
+      if (isHTML(record.result)) {
+        answerEl.innerHTML = DOMPurify.sanitize(record.result);
       } else {
-        // 桌面端恢复默认值
-        pageContent.style.paddingTop = '';
-        pageContent.style.paddingBottom = '';
+        answerEl.innerHTML = DOMPurify.sanitize(marked.parse(record.result));
       }
-    });
-
-    // 同时监测页头和输入区域
-    observer.observe(pageHeader);
-    observer.observe(inputArea);
-  }
-
-  /**
-   * 实现文本域（textarea）高度根据内容自动调整的功能。
-   * - 初始高度由 CSS `min-height` 设定。
-   * - 输入时，高度会增长以容纳内容，直至达到 CSS `max-height`。
-   * - 超过 `max-height` 后，将出现滚动条。
-   * @private
-   */
-  function handleTextareaAutoResize() {
-    const textarea = document.getElementById('question');
-    if (!textarea) return;
-
-    const adjustHeight = () => {
-      textarea.style.height = 'auto'; // 重置高度以获取准确的 scrollHeight
-      textarea.style.height = `${textarea.scrollHeight}px`; // 设置为内容的实际高度
-    };
-
-    textarea.addEventListener('input', adjustHeight);
-
-    // 初始加载时也调用一次，以防有缓存内容
-    adjustHeight();
-  }
-
-  // --- 历史记录相关功能 ---
-
-  /**
-   * 切换历史记录面板的显示状态
-   * @param {boolean} show - true 为显示, false 为隐藏
-   */
-  function toggleHistoryPanel(show) {
-    const panel = document.getElementById('history-panel');
-    const overlay = document.getElementById('page-overlay');
-    if (show) {
-      renderHistory(currentSearchKeyword); // 显示前根据当前搜索关键词重新渲染列表
-      panel.classList.add('is-open');
-      overlay.classList.add('is-visible');
-    } else {
-      // 关闭面板前，立即重置所有滑动状态，防止删除按钮在动画过程中显示
-      document.querySelectorAll('.history-item--swiped').forEach(item => {
-        item.classList.remove('history-item--swiped');
-        const contentEl = item.querySelector('.history-item__content');
-        if (contentEl) {
-          contentEl.style.transform = '';
-          contentEl.style.transition = 'none'; // 立即重置，不要动画
-        }
-      });
-      
-      panel.classList.remove('is-open');
-      overlay.classList.remove('is-visible');
     }
-  }
-
-  /**
-   * 获取并渲染历史记录到面板，支持搜索功能
-   * @param {string} [keyword=''] 搜索关键词，为空时显示所有记录
-   * @private
-   */
-  async function renderHistory(keyword = '') {
-    const listEl = document.getElementById('history-list');
-    listEl.innerHTML = ''; // 清空现有列表
-    try {
-      const records = await searchRecords(keyword);
-      if (!records || records.length === 0) {
-        const message = keyword.trim() 
-          ? `未找到包含"${keyword}"的历史记录` 
-          : '暂无历史记录';
-        listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted-color);">${message}</p>`;
-        return;
-      }
-      
-      const grouped = groupRecordsByTime(records);
-
-      const fragment = document.createDocumentFragment();
-      for (const groupName in grouped) {
-        const groupRecords = grouped[groupName];
-        
-        const groupTitle = document.createElement('div');
-        groupTitle.className = 'history-group__title';
-        groupTitle.textContent = groupName;
-        fragment.appendChild(groupTitle);
-
-        groupRecords.forEach(record => {
-          const itemEl = document.createElement('div');
-          itemEl.className = 'history-item';
-          itemEl.dataset.id = record.id;
-          itemEl.innerHTML = `
-            <div class="history-item__content">
-              <div class="history-item__title">${DOMPurify.sanitize(record.title || '无标题')}</div>
-              <div class="history-item__time">${formatTimestamp(record.timestamp)}</div>
-            </div>
-            <div class="history-item__delete">删除</div>
-          `;
-          
-          // 初始化滑动和点击功能
-          initSwipeToDelete(itemEl, record.id);
-          
-          fragment.appendChild(itemEl);
-        });
-      }
-      listEl.appendChild(fragment);
-
-      // 如果当前正在查看某个历史记录，则在列表中高亮它
-      if (currentChatId) {
-        const activeItem = listEl.querySelector(`.history-item[data-id="${currentChatId}"]`);
-        if (activeItem) {
-          activeItem.classList.add('is-active');
-        }
-      }
-
-    } catch (error) {
-      console.error("获取历史记录失败:", error);
-      listEl.innerHTML = '<p>无法加载历史记录</p>';
-    }
-  }
-
-  /**
-   * 处理历史记录项的点击事件
-   * @param {number} id - 被点击记录的ID
-   * @private
-   */
-  async function handleHistoryItemClick(id) {
-    try {
-      const record = await getRecordById(id);
-      if (!record) return;
-
-      // 立即重置所有滑动状态，防止在界面更新过程中出现视觉问题
-      document.querySelectorAll('.history-item--swiped').forEach(item => {
-        item.classList.remove('history-item--swiped');
-        const contentEl = item.querySelector('.history-item__content');
-        if (contentEl) {
-          contentEl.style.transform = '';
-          contentEl.style.transition = 'none';
-        }
-      });
-
-      // 1. 清空当前聊天界面
-      clearChat();
-
-      // 2. 从记录加载新内容
-      document.querySelector('.page-header__title').textContent = record.title;
-      document.getElementById('output-meta').textContent = record.meta;
-      const answerEl = document.getElementById('output-answer');
-      
-      // 检测数据格式并相应处理
-      // 如果内容看起来像 HTML（包含 HTML 标签），直接使用；否则作为 Markdown 解析
-      const isHTML = (str) => /<[^>]*>/.test(str);
-      
-      if (record.result) {
-        if (isHTML(record.result)) {
-          // 新格式：直接使用保存的 HTML 内容
-          answerEl.innerHTML = DOMPurify.sanitize(record.result);
-        } else {
-          // 旧格式：作为 Markdown 解析
-          answerEl.innerHTML = DOMPurify.sanitize(marked.parse(record.result));
-        }
-      }
-      
-      // 恢复思考内容（如果有）
-      const reasoningEl = document.getElementById('output-reasoning');
-      const reasoningSection = document.getElementById('reasoning-section');
-      
-      if (record.reasoning && record.reasoning.trim()) {
-        // 如果有思考内容，显示思考区域
-        reasoningSection.classList.remove('reasoning-section--hidden');
-        
-        // 同样检测格式
-        if (isHTML(record.reasoning)) {
-          // 新格式：直接使用保存的 HTML 内容
-          reasoningEl.innerHTML = DOMPurify.sanitize(record.reasoning);
-        } else {
-          // 旧格式：作为 Markdown 解析
-          reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(record.reasoning));
-        }
-        
-        // 设置思考过程为"思考完成"状态
-        updateReasoningTitle('completed');
-        
-        // 确保思考过程默认展开，让用户能看到内容
-        document.querySelector('.reasoning-section').classList.remove('collapsed');
+    
+    const reasoningEl = document.getElementById('output-reasoning');
+    const reasoningSection = document.getElementById('reasoning-section');
+    
+    if (record.reasoning && record.reasoning.trim()) {
+      reasoningSection.classList.remove('reasoning-section--hidden');
+      if (isHTML(record.reasoning)) {
+        reasoningEl.innerHTML = DOMPurify.sanitize(record.reasoning);
       } else {
-        // 如果没有思考内容，隐藏思考区域
-        reasoningSection.classList.add('reasoning-section--hidden');
+        reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(record.reasoning));
       }
-      
-      document.querySelector('.results-area').classList.add('results-area--active');
-      
-      // 3. 更新当前聊天ID和历史列表中的UI状态
-      currentChatId = record.id;
-      const allItems = document.querySelectorAll('.history-item');
-      allItems.forEach(item => item.classList.remove('is-active'));
-      const currentItemEl = document.querySelector(`.history-item[data-id="${id}"]`);
-      if(currentItemEl) currentItemEl.classList.add('is-active');
-
-      // 4. 更新全局UI状态并关闭面板
-      updateStatusIcon();
-      toggleHistoryPanel(false);
-
-    } catch (error) {
-      console.error("加载记录失败:", error);
+      updateReasoningTitle('completed');
+      document.querySelector('.reasoning-section').classList.remove('collapsed');
+    } else {
+      reasoningSection.classList.add('reasoning-section--hidden');
     }
-  }
-
-  /**
-   * 将时间戳格式化为 "YYYY年MM月DD日 HH:mm"
-   * @param {number} ts - 时间戳
-   * @returns {string} 格式化后的日期字符串
-   */
-  function formatTimestamp(ts) {
-    const date = new Date(ts);
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${year}年${month}月${day}日 ${hours}:${minutes}`;
-  }
-
-  /**
-   * 将记录按时间分组：今天、昨天、最近、七天前
-   * @param {Array<object>} records - 待分组的记录数组
-   * @returns {object} 分组后的对象
-   */
-  function groupRecordsByTime(records) {
-      const groups = { '今天': [], '昨天': [], '最近': [], '七天前': [] };
-      
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayTime = yesterday.getTime();
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const sevenDaysAgoTime = sevenDaysAgo.getTime();
-
-      for (const record of records) {
-          const recordTime = new Date(record.timestamp).setHours(0, 0, 0, 0);
-
-          if (recordTime === today) {
-              groups['今天'].push(record);
-          } else if (recordTime === yesterdayTime) {
-              groups['昨天'].push(record);
-          } else if (recordTime > sevenDaysAgoTime) {
-              groups['最近'].push(record);
-          } else {
-              groups['七天前'].push(record);
-          }
-      }
-
-      // 清理空分组并返回
-      const finalGroups = {};
-      if (groups['今天'].length > 0) finalGroups['今天'] = groups['今天'];
-      if (groups['昨天'].length > 0) finalGroups['昨天'] = groups['昨天'];
-      if (groups['最近'].length > 0) finalGroups['最近'] = groups['最近'];
-      if (groups['七天前'].length > 0) finalGroups['七天前'] = groups['七天前'];
-      
-      return finalGroups;
+    
+    document.querySelector('.results-area').classList.add('results-area--active');
+    
+    currentChatId = record.id;
+    setCurrentChatId(record.id);
+    
+    updateStatusIcon();
   }
 
   /**
@@ -793,12 +452,13 @@ import { getFullBazi } from './ganzhi.js';
       title,
       result,
       meta,
-      reasoning,  // 新增思考内容字段
+      reasoning,
       timestamp: Date.now()
     };
     try {
       const newId = await addRecord(record);
       currentChatId = newId;
+      setCurrentChatId(newId);
       console.log('记录已保存, ID:', newId);
     } catch (error) {
       console.error('保存记录失败:', error);
@@ -814,23 +474,20 @@ import { getFullBazi } from './ganzhi.js';
     const statusIcon = statusBtn.querySelector('span');
     const answerEl = document.getElementById('output-answer');
 
-    // 检查是否有内容（answer区域或meta区域）
     const hasContent = answerEl.innerHTML.trim() !== '' || currentChatId !== null;
 
     if (hasContent) {
-      statusIcon.textContent = 'chat_add_on'; // 有内容时：新建对话
-      statusIcon.style.color = ''; // 确保重置颜色
+      statusIcon.textContent = 'chat_add_on';
+      statusIcon.style.color = '';
       statusBtn.dataset.action = 'new';
-      // 恢复保存开关为开启状态，以便下次默认保存
       isSaveEnabled = true; 
     } else {
-      // 无内容时：控制是否保存
       statusIcon.textContent = 'comments_disabled';
       if (isSaveEnabled) {
-        statusIcon.style.color = ''; // 默认颜色，表示"将保存"
+        statusIcon.style.color = '';
         statusBtn.dataset.action = 'disable-save';
       } else {
-        statusIcon.style.color = 'var(--button-active-bg)'; // 高亮表示"不保存"
+        statusIcon.style.color = 'var(--button-active-bg)';
         statusBtn.dataset.action = 'enable-save';
       }
     }
@@ -869,7 +526,6 @@ import { getFullBazi } from './ganzhi.js';
     document.getElementById('n3').value = '';
     document.querySelector('.page-header__title').textContent = 'AI小六壬';
     
-    // 清空内容并移除loading类
     const metaEl = document.getElementById('output-meta');
     const answerEl = document.getElementById('output-answer');
     const reasoningEl = document.getElementById('output-reasoning');
@@ -878,248 +534,25 @@ import { getFullBazi } from './ganzhi.js';
     answerEl.innerHTML = '';
     reasoningEl.innerHTML = '';
     
-    // 清除所有元素的loading类，防止斜体样式残留
     clearLoading(metaEl);
     clearLoading(answerEl);
     clearLoading(reasoningEl);
     
     const reasoningSection = document.getElementById('reasoning-section');
     reasoningSection.classList.add('reasoning-section--hidden');
-    // 移除激活状态，隐藏结果区的分割线
     document.querySelector('.results-area').classList.remove('results-area--active');
     
-    // 清除历史列表中的选中状态
     const activeHistoryItem = document.querySelector('.history-item.is-active');
     if (activeHistoryItem) {
       activeHistoryItem.classList.remove('is-active');
     }
 
     currentChatId = null;
-    isSaveEnabled = true; // 新聊天默认开启保存
+    setCurrentChatId(null);
+    isSaveEnabled = true;
     
-    updateStatusIcon(); // 更新图标状态为"无内容"
-    handleTextareaAutoResize(); // 重置输入框高度
-  }
-
-  /**
-   * 初始化历史条目的滑动删除功能
-   * @param {HTMLElement} itemEl - 历史条目元素
-   * @param {number} recordId - 记录ID
-   * @private
-   */
-  function initSwipeToDelete(itemEl, recordId) {
-    let startX = 0;
-    let currentX = 0;
-    let isDragging = false;
-    let startTime = 0;
-    
-    const contentEl = itemEl.querySelector('.history-item__content');
-    const deleteBtn = itemEl.querySelector('.history-item__delete');
-    const threshold = 50; // 触发滑动的最小距离
-    
-    // 重置滑动状态
-    function resetSwipe() {
-      itemEl.classList.remove('history-item--swiped');
-      contentEl.style.transform = '';
-    }
-    
-    // 处理滑动开始
-    function handleStart(e) {
-      // 如果已经有其他条目处于滑动状态，先重置它们
-      document.querySelectorAll('.history-item--swiped').forEach(item => {
-        if (item !== itemEl) {
-          item.classList.remove('history-item--swiped');
-          item.querySelector('.history-item__content').style.transform = '';
-        }
-      });
-      
-      isDragging = true;
-      startTime = Date.now();
-      startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-      contentEl.style.transition = 'none';
-    }
-    
-    // 处理滑动中
-    function handleMove(e) {
-      if (!isDragging) return;
-      
-      e.preventDefault();
-      currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-      const deltaX = currentX - startX;
-      
-      // 只允许向左滑动
-      if (deltaX < 0) {
-        const translateX = Math.max(deltaX, -80);
-        contentEl.style.transform = `translateX(${translateX}px)`;
-      }
-    }
-    
-    // 处理滑动结束/点击
-    function handleEnd(e) {
-      if (!isDragging) return;
-      
-      isDragging = false;
-      contentEl.style.transition = '';
-      
-      const finalX = e.type.includes('mouse') ? e.clientX : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : startX);
-      const deltaX = finalX - startX;
-      
-      // 判断是点击还是滑动
-      if (Math.abs(deltaX) < 10) {
-        // --- 这是一次点击 ---
-        // 立即重置任何可能的滑动状态，防止视觉残留
-        contentEl.style.transform = '';
-        contentEl.style.transition = 'none';
-        
-        // 确保在下一帧恢复过渡效果
-        requestAnimationFrame(() => {
-          contentEl.style.transition = '';
-        });
-        
-        // 如果当前项已滑开，则重置它
-        if(itemEl.classList.contains('history-item--swiped')) {
-            resetSwipe();
-        } else {
-            // 否则，执行加载操作
-            handleHistoryItemClick(recordId);
-        }
-        return;
-      }
-      
-      // --- 这是一次滑动 ---
-      const deltaTime = Date.now() - startTime;
-      const velocity = Math.abs(deltaX) / deltaTime;
-      
-      // 无论滑动结果如何，最终都清除内联 transform，将动画控制权交还给 CSS
-      contentEl.style.transform = '';
-
-      // 根据滑动距离或速度决定是否显示删除按钮
-      if ((deltaX < -threshold) || (velocity > 0.3 && deltaX < 0)) {
-        itemEl.classList.add('history-item--swiped');
-      } else {
-        // resetSwipe 内部会移除 'history-item--swiped' 类
-        resetSwipe();
-      }
-    }
-    
-    // 处理删除
-    async function handleDelete() {
-      itemEl.classList.add('history-item--deleting');
-      
-      try {
-        // 从数据库删除记录
-        await deleteRecord(recordId);
-        
-        // 如果删除的是当前查看的记录，清空界面
-        if (currentChatId === recordId) {
-          clearChat();
-        }
-        
-        // 动画结束后移除元素
-        setTimeout(() => {
-          itemEl.remove();
-          
-          // 检查是否还有记录
-          const remainingItems = document.querySelectorAll('.history-item').length;
-          if (remainingItems === 0) {
-            document.getElementById('history-list').innerHTML = 
-              '<p style="text-align: center; color: var(--text-muted-color);">暂无历史记录</p>';
-          }
-        }, 300);
-        
-      } catch (error) {
-        console.error('删除记录失败:', error);
-        itemEl.classList.remove('history-item--deleting');
-      }
-    }
-    
-    // 绑定事件
-    // 触摸事件
-    contentEl.addEventListener('touchstart', handleStart, { passive: true });
-    contentEl.addEventListener('touchmove', handleMove, { passive: false });
-    contentEl.addEventListener('touchend', handleEnd);
-    
-    // 鼠标事件（用于开发测试）
-    contentEl.addEventListener('mousedown', handleStart);
-    // 注意：move 和 up 事件需要绑定在 document 上，以处理鼠标在元素外释放的情况
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleEnd);
-    
-    // 删除按钮点击
-    deleteBtn.addEventListener('click', handleDelete);
-  }
-
-  // --- 搜索功能相关函数 ---
-
-  /**
-   * 处理搜索输入事件
-   * @param {Event} e - 输入事件
-   * @private
-   */
-  function handleSearchInput(e) {
-    const keyword = e.target.value.trim();
-    currentSearchKeyword = keyword;
-    
-    // 显示或隐藏清除按钮
-    toggleSearchClearButton(keyword);
-    
-    // 使用防抖处理搜索
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
-    }
-    
-    searchDebounceTimer = setTimeout(() => {
-      performSearch(keyword);
-    }, 300); // 300ms防抖延迟
-  }
-
-  /**
-   * 执行搜索操作
-   * @param {string} keyword - 搜索关键词
-   * @private
-   */
-  async function performSearch(keyword) {
-    try {
-      await renderHistory(keyword);
-    } catch (error) {
-      console.error('搜索失败:', error);
-      const listEl = document.getElementById('history-list');
-      listEl.innerHTML = '<p style="text-align: center; color: var(--text-muted-color);">搜索时发生错误</p>';
-    }
-  }
-
-  /**
-   * 清除搜索内容
-   * @private
-   */
-  function clearSearch() {
-    const searchInput = document.getElementById('history-search-input');
-    searchInput.value = '';
-    currentSearchKeyword = '';
-    toggleSearchClearButton('');
-    
-    // 清除防抖定时器
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = null;
-    }
-    
-    // 重新渲染所有历史记录
-    renderHistory();
-  }
-
-  /**
-   * 显示或隐藏搜索清除按钮
-   * @param {string} value - 当前输入值
-   * @private
-   */
-  function toggleSearchClearButton(value) {
-    const clearBtn = document.getElementById('history-search-clear');
-    if (value.length > 0) {
-      clearBtn.classList.add('is-visible');
-    } else {
-      clearBtn.classList.remove('is-visible');
-    }
+    updateStatusIcon();
+    handleTextareaAutoResize();
   }
 
   document.addEventListener('DOMContentLoaded', init);
