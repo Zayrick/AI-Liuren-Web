@@ -546,6 +546,16 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
       panel.classList.add('is-open');
       overlay.classList.add('is-visible');
     } else {
+      // 关闭面板前，立即重置所有滑动状态，防止删除按钮在动画过程中显示
+      document.querySelectorAll('.history-item--swiped').forEach(item => {
+        item.classList.remove('history-item--swiped');
+        const contentEl = item.querySelector('.history-item__content');
+        if (contentEl) {
+          contentEl.style.transform = '';
+          contentEl.style.transition = 'none'; // 立即重置，不要动画
+        }
+      });
+      
       panel.classList.remove('is-open');
       overlay.classList.remove('is-visible');
     }
@@ -619,6 +629,16 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
     try {
       const record = await getRecordById(id);
       if (!record) return;
+
+      // 立即重置所有滑动状态，防止在界面更新过程中出现视觉问题
+      document.querySelectorAll('.history-item--swiped').forEach(item => {
+        item.classList.remove('history-item--swiped');
+        const contentEl = item.querySelector('.history-item__content');
+        if (contentEl) {
+          contentEl.style.transform = '';
+          contentEl.style.transition = 'none';
+        }
+      });
 
       // 1. 清空当前聊天界面
       clearChat();
@@ -876,6 +896,15 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
       // 判断是点击还是滑动
       if (Math.abs(deltaX) < 10) {
         // --- 这是一次点击 ---
+        // 立即重置任何可能的滑动状态，防止视觉残留
+        contentEl.style.transform = '';
+        contentEl.style.transition = 'none';
+        
+        // 确保在下一帧恢复过渡效果
+        requestAnimationFrame(() => {
+          contentEl.style.transition = '';
+        });
+        
         // 如果当前项已滑开，则重置它
         if(itemEl.classList.contains('history-item--swiped')) {
             resetSwipe();
