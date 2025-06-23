@@ -23,7 +23,9 @@ import {
   toggleReasoningCollapse,
   updateReasoningTitle,
   autoCollapseReasoning,
-  fixMarkdownHeadings
+  fixMarkdownHeadings,
+  updateReasoningPreviewIfCollapsed,
+  clearReasoningPreview
 } from './ui.js';
 
 (() => {
@@ -290,6 +292,7 @@ import {
               reasoningMarkdown += dataStr.replace(/\\n/g, '\n');
               const fixedReasoning = fixMarkdownHeadings(reasoningMarkdown);
               reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(fixedReasoning));
+              updateReasoningPreviewIfCollapsed(); // 更新预览
               break;
             }
             case 'answer': {
@@ -443,7 +446,11 @@ import {
         reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(record.reasoning));
       }
       updateReasoningTitle('completed');
-      document.querySelector('.reasoning-section').classList.add('collapsed');
+      // 手动折叠并更新预览（如果需要）
+      const reasoningDOM = document.querySelector('.reasoning-section');
+      reasoningDOM.classList.add('collapsed');
+      // 使用公开的 Helper 函数安全更新预览
+      updateReasoningPreviewIfCollapsed();
     } else {
       reasoningSection.classList.add('reasoning-section--hidden');
     }
