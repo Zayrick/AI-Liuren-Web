@@ -9,6 +9,10 @@ compatibility_date = "2025-06-11"
 #   API_KEY="your-local-api-key"
 #   MODEL="deepseek/deepseek-chat-v3-0324"
 [vars]
+# "price"：优先选择最低价格
+# "throughput": 优先选择吞吐量最高的模型
+# "latency": 优先选择最低延迟
+OPENROUTER_SORT = "price"
 REASONING_MODEL = "deepseek/deepseek-r1-0528"
 MODEL = "deepseek/deepseek-chat-v3-0324"
 ENDPOINT = "https://gateway.ai.cloudflare.com/v1/9ce9598718c27c7441e2818185c1dbfa/openrouter/openrouter/v1/chat/completions"
