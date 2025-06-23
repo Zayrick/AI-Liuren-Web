@@ -329,61 +329,7 @@ function getMimeType(path) {
   return mimeTypes[ext] || 'application/octet-stream';
 }
 
-/**
- * @brief 处理对外部资源的代理请求
- * @param {Request} request - HTTP 请求对象
- * @returns {Promise<Response>}
- */
-async function handleProxyRequest(request) {
-  const url = new URL(request.url);
-  // 从路径中提取目标 URL，例如 /proxy/https://example.com/foo -> https://example.com/foo
-  let targetUrlString = url.pathname.substring('/proxy/'.length);
-  
-  // 拼接查询字符串
-  if (url.search) {
-    targetUrlString += url.search;
-  }
 
-  // 白名单校验
-  const allowedHostnames = [
-    'fonts.googleapis.com',
-    'fonts.gstatic.com',
-    'cdn.jsdelivr.net'
-  ];
-
-  let targetUrl;
-  try {
-    targetUrl = new URL(targetUrlString);
-  } catch (e) {
-    return new Response('Invalid URL in proxy request', { status: 400 });
-  }
-
-  if (!allowedHostnames.includes(targetUrl.hostname)) {
-    return new Response(`Hostname not allowed: ${targetUrl.hostname}`, { status: 403 });
-  }
-
-  // 构造发往源站的请求
-  const proxyRequest = new Request(targetUrl.toString(), {
-    headers: request.headers,
-    method: request.method,
-    body: request.body,
-    redirect: 'follow'
-  });
-
-  // 发起请求
-  const response = await fetch(proxyRequest);
-
-  // 克隆响应，以便修改 headers
-  const newResponse = new Response(response.body, response);
-
-  // 设置缓存策略
-  newResponse.headers.set('Cache-Control', 'public, max-age=86400'); // 缓存一天
-  
-  // 允许跨域
-  newResponse.headers.set('Access-Control-Allow-Origin', '*');
-
-  return newResponse;
-}
 
 // ********************************************************
 // *                    Worker 主入口                     *
@@ -404,11 +350,6 @@ export default {
     // API 路由处理
     if (pathname === '/api/divination') {
       return handleDivinationAPI(request, env);
-    }
-
-    // 代理路由处理
-    if (pathname.startsWith('/proxy/')) {
-      return handleProxyRequest(request);
     }
 
     // 静态资产服务
