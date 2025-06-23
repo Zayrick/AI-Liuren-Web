@@ -443,7 +443,7 @@ import {
         reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(record.reasoning));
       }
       updateReasoningTitle('completed');
-      document.querySelector('.reasoning-section').classList.remove('collapsed');
+      document.querySelector('.reasoning-section').classList.add('collapsed');
     } else {
       reasoningSection.classList.add('reasoning-section--hidden');
     }
