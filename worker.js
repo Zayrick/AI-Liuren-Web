@@ -166,7 +166,7 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
 
         if (usedEndpoint.includes('openrouter')) {
           requestBody.provider = {
-            sort: 'throughput'
+            sort: 'latency'
           };
         }
 
