@@ -11,6 +11,8 @@
  * 所有函数均包含 Doxygen/JSDoc 风格注释，符合企业级审计要求。
  */
 import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRecords } from './db.js';
+import { generateHexagram } from './hexagram.js';
+import { getFullBazi } from './ganzhi.js';
 
 (() => {
   'use strict';
@@ -163,7 +165,15 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
     // 初始隐藏推理面板，只有在收到事件后且用户仍允许时再展示
     reasoningSection.classList.add('reasoning-section--hidden');
 
-    showLoading(metaEl, '连接中');
+    // **本地生成卦象和时间信息，立即显示给用户**
+    const now = new Date(); // 直接使用客户端本地时间
+    const fullBazi = getFullBazi(now);
+    const hexagram = generateHexagram(numbers);
+    
+    // 立即显示卦象信息，减少用户等待感知
+    metaEl.textContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
+    clearLoading(metaEl);
+
     showLoading(reasoningEl, '等待');
     showLoading(answerEl, '等待');
 
@@ -253,7 +263,8 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
           apiKey,
           model,
           endpoint,
-          clientTime: { ts: Date.now(), tz_offset: new Date().getTimezoneOffset() }
+          hexagram,  // 添加本地生成的卦象
+          fullBazi   // 添加本地生成的时间信息
         })
       });
 
@@ -292,18 +303,6 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
           const dataStr = dataParts.join('\n');
 
           switch (eventType) {
-            case 'meta': {
-              const meta = JSON.parse(dataStr);
-              /*
-               * 在卦象解析中显示更完整的信息：
-               *  1) 所问之事：question
-               *  2) 所得之卦：hexagram
-               *  3) 所占之时：fullBazi
-               */
-              metaEl.textContent = `所问之事：${question}\n所得之卦：${meta.hexagram}\n所占之时：${meta.time}`;
-              clearLoading(metaEl);
-              break;
-            }
             case 'title': {
               if (!isTitleStarted) {
                 document.querySelector('.page-header__title').textContent = '';
@@ -869,9 +868,20 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
     document.getElementById('n2').value = '';
     document.getElementById('n3').value = '';
     document.querySelector('.page-header__title').textContent = 'AI小六壬';
-    document.getElementById('output-meta').textContent = '';
-    document.getElementById('output-answer').innerHTML = '';
-    document.getElementById('output-reasoning').innerHTML = '';
+    
+    // 清空内容并移除loading类
+    const metaEl = document.getElementById('output-meta');
+    const answerEl = document.getElementById('output-answer');
+    const reasoningEl = document.getElementById('output-reasoning');
+    
+    metaEl.textContent = '';
+    answerEl.innerHTML = '';
+    reasoningEl.innerHTML = '';
+    
+    // 清除所有元素的loading类，防止斜体样式残留
+    clearLoading(metaEl);
+    clearLoading(answerEl);
+    clearLoading(reasoningEl);
     
     const reasoningSection = document.getElementById('reasoning-section');
     reasoningSection.classList.add('reasoning-section--hidden');

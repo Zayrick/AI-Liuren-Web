@@ -11,9 +11,10 @@
  */
 
 // -------------------- 依赖导入 --------------------
-import { generateHexagram } from "./lib/hexagram.js";
-import { resolveClientTime } from "./lib/time.js";
-import { getFullBazi } from "./lib/ganzhi.js";
+// 卦象计算已迁移到前端，不再需要这些导入
+// import { generateHexagram } from "./lib/hexagram.js";
+// import { resolveClientTime } from "./lib/time.js";
+// import { getFullBazi } from "./lib/ganzhi.js";
 
 /**
  * @typedef {Object} StreamDivinationParams
@@ -23,7 +24,8 @@ import { getFullBazi } from "./lib/ganzhi.js";
  * @property {string}   apiKey             - AI API Key
  * @property {string}   model              - 模型名称
  * @property {string}   endpoint           - API 端点
- * @property {import("./lib/time.js").ClientTime=} clientTime - 客户端时间信息
+ * @property {string}   hexagram           - 前端计算的卦象
+ * @property {string}   fullBazi           - 前端计算的完整八字
  */
 
 // ********************************************************
@@ -117,7 +119,7 @@ async function generateTitle({ question, usedApiKey, usedEndpoint, titleModel, w
  * @param {Record<string,string>}   env    - Cloudflare 环境变量
  * @return {Promise<Response>} SSE Response
  */
-async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, clientTime }, env) {
+async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, hexagram, fullBazi }, env) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -138,10 +140,6 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
       if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
         throw new Error("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint");
       }
-
-      const now = resolveClientTime(clientTime);
-      const fullBazi = getFullBazi(now);
-      const hexagram = generateHexagram(numbers);
 
       await writer.write(
         encoder.encode(
@@ -277,7 +275,7 @@ async function handleDivinationAPI(request, env) {
       return new Response("请求体需为 JSON", { status: 400 }); 
     }
     
-    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, clientTime } = body || {};
+    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, hexagram, fullBazi } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
@@ -289,7 +287,8 @@ async function handleDivinationAPI(request, env) {
       apiKey, 
       model, 
       endpoint, 
-      clientTime 
+      hexagram, 
+      fullBazi 
     }, env);
   }
 
