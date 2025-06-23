@@ -6,7 +6,7 @@
 
 const DB_NAME = 'DivinationHistoryDB';
 const STORE_NAME = 'divinations';
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 let db = null;
 
@@ -56,6 +56,19 @@ function initDB() {
           store.deleteIndex('question');
           console.log('已移除 "question" 索引。');
         }
+      }
+
+      // 版本 3 升级：支持存储思考内容
+      if (event.oldVersion < 3) {
+        console.log('执行版本 3 数据库升级：支持存储AI思考过程...');
+        // 旧版本数据自动兼容，reasoning字段将在新记录中自动添加
+      }
+
+      // 版本 4 升级：数据格式从 Markdown 改为 HTML
+      if (event.oldVersion < 4) {
+        console.log('执行版本 4 数据库升级：存储格式从 Markdown 改为渲染后的 HTML...');
+        // 旧版本数据仍然兼容，但新数据将保存为 HTML 格式
+        // 注意：旧数据仍包含 Markdown，需要在读取时进行兼容处理
       }
     };
   });

@@ -372,7 +372,10 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
       // 占卜结束后，处理记录保存和状态更新
       if (finalAnswer.trim()) {
         if(isSaveEnabled) {
-          await saveCurrentDivination(finalTitle, finalAnswer, metaEl.textContent);
+          // 获取渲染后的 HTML 内容
+          const renderedAnswer = answerEl.innerHTML;
+          const renderedReasoning = reasoningEl.innerHTML;
+          await saveCurrentDivination(finalTitle, renderedAnswer, metaEl.textContent, renderedReasoning);
         }
         updateStatusIcon();
       }
@@ -663,8 +666,48 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
       document.querySelector('.page-header__title').textContent = record.title;
       document.getElementById('output-meta').textContent = record.meta;
       const answerEl = document.getElementById('output-answer');
-      answerEl.innerHTML = DOMPurify.sanitize(marked.parse(record.result));
-      document.getElementById('reasoning-section').classList.add('reasoning-section--hidden');
+      
+      // 检测数据格式并相应处理
+      // 如果内容看起来像 HTML（包含 HTML 标签），直接使用；否则作为 Markdown 解析
+      const isHTML = (str) => /<[^>]*>/.test(str);
+      
+      if (record.result) {
+        if (isHTML(record.result)) {
+          // 新格式：直接使用保存的 HTML 内容
+          answerEl.innerHTML = DOMPurify.sanitize(record.result);
+        } else {
+          // 旧格式：作为 Markdown 解析
+          answerEl.innerHTML = DOMPurify.sanitize(marked.parse(record.result));
+        }
+      }
+      
+      // 恢复思考内容（如果有）
+      const reasoningEl = document.getElementById('output-reasoning');
+      const reasoningSection = document.getElementById('reasoning-section');
+      
+      if (record.reasoning && record.reasoning.trim()) {
+        // 如果有思考内容，显示思考区域
+        reasoningSection.classList.remove('reasoning-section--hidden');
+        
+        // 同样检测格式
+        if (isHTML(record.reasoning)) {
+          // 新格式：直接使用保存的 HTML 内容
+          reasoningEl.innerHTML = DOMPurify.sanitize(record.reasoning);
+        } else {
+          // 旧格式：作为 Markdown 解析
+          reasoningEl.innerHTML = DOMPurify.sanitize(marked.parse(record.reasoning));
+        }
+        
+        // 设置思考过程为"思考完成"状态
+        updateReasoningTitle('completed');
+        
+        // 确保思考过程默认展开，让用户能看到内容
+        document.querySelector('.reasoning-section').classList.remove('collapsed');
+      } else {
+        // 如果没有思考内容，隐藏思考区域
+        reasoningSection.classList.add('reasoning-section--hidden');
+      }
+      
       document.querySelector('.results-area').classList.add('results-area--active');
       
       // 3. 更新当前聊天ID和历史列表中的UI状态
@@ -742,14 +785,16 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord, searchRe
   /**
    * 保存当前占卜结果到数据库
    * @param {string} title - AI生成的标题
-   * @param {string} result - AI生成的完整回复
+   * @param {string} result - AI生成的完整回复（HTML格式）
    * @param {string} meta - 卦象元数据
+   * @param {string} reasoning - AI的思考过程内容（HTML格式）
    */
-  async function saveCurrentDivination(title, result, meta) {
+  async function saveCurrentDivination(title, result, meta, reasoning = '') {
     const record = {
       title,
       result,
       meta,
+      reasoning,  // 新增思考内容字段
       timestamp: Date.now()
     };
     try {
