@@ -588,11 +588,7 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
             <div class="history-item__delete">删除</div>
           `;
           
-          // 为内容区域添加点击事件
-          const contentEl = itemEl.querySelector('.history-item__content');
-          contentEl.addEventListener('click', () => handleHistoryItemClick(record.id));
-          
-          // 初始化滑动删除功能
+          // 初始化滑动和点击功能
           initSwipeToDelete(itemEl, record.id);
           
           fragment.appendChild(itemEl);
@@ -867,14 +863,30 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
       }
     }
     
-    // 处理滑动结束
-    function handleEnd() {
+    // 处理滑动结束/点击
+    function handleEnd(e) {
       if (!isDragging) return;
       
       isDragging = false;
       contentEl.style.transition = '';
       
-      const deltaX = currentX - startX;
+      const finalX = e.type.includes('mouse') ? e.clientX : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : startX);
+      const deltaX = finalX - startX;
+      
+      // 判断是点击还是滑动
+      if (Math.abs(deltaX) < 10) {
+        // --- 这是一次点击 ---
+        // 如果当前项已滑开，则重置它
+        if(itemEl.classList.contains('history-item--swiped')) {
+            resetSwipe();
+        } else {
+            // 否则，执行加载操作
+            handleHistoryItemClick(recordId);
+        }
+        return;
+      }
+      
+      // --- 这是一次滑动 ---
       const deltaTime = Date.now() - startTime;
       const velocity = Math.abs(deltaX) / deltaTime;
       
@@ -925,18 +937,12 @@ import { initDB, addRecord, getAllRecords, getRecordById, deleteRecord } from '.
     
     // 鼠标事件（用于开发测试）
     contentEl.addEventListener('mousedown', handleStart);
+    // 注意：move 和 up 事件需要绑定在 document 上，以处理鼠标在元素外释放的情况
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleEnd);
     
     // 删除按钮点击
     deleteBtn.addEventListener('click', handleDelete);
-    
-    // 点击其他地方时重置滑动状态
-    document.addEventListener('click', (e) => {
-      if (!itemEl.contains(e.target) && itemEl.classList.contains('history-item--swiped')) {
-        resetSwipe();
-      }
-    });
   }
 
   document.addEventListener('DOMContentLoaded', init);
