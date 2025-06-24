@@ -1,6 +1,6 @@
-name = "yunzhan-xiaoliuren"
+name = "oracloud"
 main = "worker.js"
-compatibility_date = "2025-06-11"
+compatibility_date = "2025-06-24"
 
 # 环境变量
 # 本地调试请在项目根目录创建 `.dev.vars` 文件，Wrangler 会在 `wrangler dev` 运行时自动加载。
