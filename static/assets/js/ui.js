@@ -70,17 +70,23 @@ export function toggleAiSettings() {
   const content = document.getElementById('ai-settings-content');
   const chevron = document.getElementById('chevron');
 
-  if (!container || !content || !chevron) return;
+  // 如果关键元素不存在则直接退出，但缺少 chevron 不应阻止功能
+  if (!container || !content) return;
 
   const isHidden = container.style.display === 'none' || getComputedStyle(container).display === 'none';
   if (isHidden) {
     container.style.display = 'block';
     content.classList.add('active');
-    chevron.classList.add('rotated');
+    // chevron 可能在未来添加，存在时再旋转
+    if (chevron) {
+      chevron.classList.add('rotated');
+    }
   } else {
     container.style.display = 'none';
     content.classList.remove('active');
-    chevron.classList.remove('rotated');
+    if (chevron) {
+      chevron.classList.remove('rotated');
+    }
   }
 }
 

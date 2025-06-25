@@ -15,7 +15,7 @@
 // =============================
 
 /** 当前缓存版本。更新资源清单时应同时更新此版本号，触发激活阶段的缓存刷新。 */
-const CACHE_VERSION = 'vmc99a1d7';
+const CACHE_VERSION = 'vmcbpl4c3';
 /** 实际使用的 Cache Storage 名称。*/
 const CACHE_NAME = `liuyao-ai-${CACHE_VERSION}`;
 

@@ -126,19 +126,19 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
 
   (async () => {
     try {
-      const overrideProvided = (apiKey && apiKey.trim()) || (model && model.trim()) || (endpoint && endpoint.trim());
-      const usedApiKey   = overrideProvided ? apiKey   : env.API_KEY;
-      let usedModel;
-      if (overrideProvided) {
-        usedModel = model;
-      } else {
-        usedModel = showReasoning && env.REASONING_MODEL ? env.REASONING_MODEL : env.MODEL;
-      }
-      const usedEndpoint = overrideProvided ? endpoint : env.ENDPOINT;
-      const titleModel = overrideProvided ? model : env.TITLE_MODEL;
+      // 优先使用用户提供的值，否则回退到环境变量
+      const usedApiKey = (apiKey && apiKey.trim()) || env.API_KEY;
+      const usedModel =
+        (model && model.trim()) ||
+        (showReasoning && env.REASONING_MODEL
+          ? env.REASONING_MODEL
+          : env.MODEL);
+      const usedEndpoint = (endpoint && endpoint.trim()) || env.ENDPOINT;
+      const titleModel = (model && model.trim()) || env.TITLE_MODEL;
 
-      if (overrideProvided && (!usedApiKey || !usedModel || !usedEndpoint)) {
-        throw new Error("当自定义 AI 配置时，需同时提供 apiKey、model、endpoint");
+      // API Key 是必须的，无论是用户提供还是环境变量配置
+      if (!usedApiKey) {
+        throw new Error("API Key 未配置，无法处理请求。请在前端设置或在后端环境变量中提供。");
       }
 
       await writer.write(
@@ -278,6 +278,14 @@ async function handleDivinationAPI(request, env) {
     const { numbers, question, show_reasoning = true, apiKey, model, endpoint, hexagram, fullBazi } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
+    }
+    
+    // 新增：服务器端输入校验
+    if ((model || endpoint) && !apiKey) {
+      return new Response("如指定模型或 API 地址，则必须填写 API Key。", { 
+        status: 400,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
     }
     
     return streamDivination({ 

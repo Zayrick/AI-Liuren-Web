@@ -97,6 +97,27 @@ import {
   async function onSubmit(e) {
     e.preventDefault();
 
+    // ---------------- 输入校验：API Key 与模型/端点的依赖关系 ----------------
+    const apiKeyInputField = document.getElementById('apiKey');
+    const aiModelInputField = document.getElementById('aiModel');
+    const aiEndpointInputField = document.getElementById('aiEndpoint');
+
+    const apiKeyVal = apiKeyInputField.value.trim();
+    const modelVal = aiModelInputField.value.trim();
+    const endpointVal = aiEndpointInputField.value.trim();
+
+    // 若用户填写了模型或端点（任意一个），则必须同时提供 API Key
+    if (!apiKeyVal && (modelVal || endpointVal)) {
+      // 使用浏览器原生校验提示：设置 validity 并聚焦 API Key 输入框
+      apiKeyInputField.setCustomValidity('如指定模型或 API 地址，则必须填写 API Key。');
+      apiKeyInputField.reportValidity();
+      apiKeyInputField.focus();
+      return;
+    } else {
+      // 清除自定义校验信息，避免后续无法提交
+      apiKeyInputField.setCustomValidity('');
+    }
+
     const statusBtn = document.getElementById('status-btn');
     const statusIcon = statusBtn.querySelector('span');
 
