@@ -119,7 +119,7 @@ async function generateTitle({ question, usedApiKey, usedEndpoint, titleModel, w
  * @param {Record<string,string>}   env    - Cloudflare 环境变量
  * @return {Promise<Response>} SSE Response
  */
-async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi }, env) {
+async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime }, env) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -152,7 +152,11 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
         if (env.SYSTEM_PROMPT) {
           messages.push({ role: "system", content: env.SYSTEM_PROMPT });
         }
-        messages.push({ role: "user", content: `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}` });
+        let userContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
+        if (currentDateTime) {
+          userContent += `\n${currentDateTime}`;
+        }
+        messages.push({ role: "user", content: userContent });
 
         const requestBody = {
           model: usedModel,
@@ -277,7 +281,7 @@ async function handleDivinationAPI(request, env) {
       return new Response("请求体需为 JSON", { status: 400 }); 
     }
     
-    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi } = body || {};
+    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
@@ -307,7 +311,8 @@ async function handleDivinationAPI(request, env) {
       endpoint, 
       openrouterSort,
       hexagram, 
-      fullBazi 
+      fullBazi,
+      currentDateTime 
     }, env);
   }
 

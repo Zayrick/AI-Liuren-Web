@@ -170,7 +170,15 @@ import {
     const fullBazi = getFullBazi(now);
     const hexagram = generateHexagram(numbers);
     
-    // 立即显示卦象信息，减少用户等待感知
+    // 生成格式化的时间字符串（XXXX年XX月XX日 XX:XX）用于发送给AI
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const formattedDateTime = `${year}年${month}月${day}日 ${hours}:${minutes}`;
+    
+    // 立即显示卦象信息，减少用户等待感知（不显示formattedDateTime）
     metaEl.textContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
     clearLoading(metaEl);
 
@@ -272,7 +280,8 @@ import {
           endpoint,
           openrouterSort,
           hexagram,  // 添加本地生成的卦象
-          fullBazi   // 添加本地生成的时间信息
+          fullBazi,  // 添加本地生成的时间信息
+          currentDateTime: formattedDateTime  // 添加格式化的当前时间（不在前端显示）
         })
       });
 
@@ -391,13 +400,29 @@ import {
 
       // 占卜结束后，处理记录保存和状态更新
       if (finalAnswer.trim()) {
-        if(isSaveEnabled) {
-          // 获取渲染后的 HTML 内容
+        if (isSaveEnabled) {
           const renderedAnswer = answerEl.innerHTML;
-          const renderedReasoning = reasoningEl.innerHTML;
-          await saveCurrentDivination(finalTitle, renderedAnswer, metaEl.textContent, renderedReasoning);
+
+          /*
+           * 如果推理过程尚未真正开始或仍处于加载占位符状态，则不保存到数据库，
+           * 以免后续读取时出现「思考中」的空白框误导用户。
+           */
+          const shouldSaveReasoning =
+            isReasoningStarted &&
+            hasReasoningCompleted &&
+            !reasoningEl.classList.contains('loading') &&
+            reasoningEl.innerHTML.trim() !== '';
+
+          const renderedReasoning = shouldSaveReasoning ? reasoningEl.innerHTML : '';
+
+          await saveCurrentDivination(
+            finalTitle,
+            renderedAnswer,
+            metaEl.textContent,
+            renderedReasoning
+          );
+          updateStatusIcon();
         }
-        updateStatusIcon();
       }
     }
   }
