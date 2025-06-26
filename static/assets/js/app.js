@@ -54,10 +54,21 @@ import {
     const aiModelInput = document.getElementById('aiModel');
     /** @type {HTMLInputElement} */
     const aiEndpointInput = document.getElementById('aiEndpoint');
+    /** @type {HTMLSelectElement} */
+    const openrouterSortSelect = document.getElementById('openrouterSort');
 
     apiKeyInput.value = localStorage.getItem('divination_api_key') || '';
     aiModelInput.value = localStorage.getItem('divination_ai_model') || '';
     aiEndpointInput.value = localStorage.getItem('divination_ai_endpoint') || '';
+    openrouterSortSelect.value = localStorage.getItem('divination_openrouter_sort') || '';
+    
+    // 检查是否需要显示OpenRouter排序选项
+    const endpoint = aiEndpointInput.value.toLowerCase();
+    if (endpoint.includes('openrouter')) {
+      openrouterSortSelect.style.display = 'block';
+    } else {
+      openrouterSortSelect.style.display = 'none';
+    }
   }
 
   /**
@@ -105,6 +116,7 @@ import {
     const apiKeyVal = apiKeyInputField.value.trim();
     const modelVal = aiModelInputField.value.trim();
     const endpointVal = aiEndpointInputField.value.trim();
+    const openrouterSortVal = document.getElementById('openrouterSort').value.trim();
 
     // 若用户填写了模型或端点（任意一个），则必须同时提供 API Key
     if (!apiKeyVal && (modelVal || endpointVal)) {
@@ -116,6 +128,14 @@ import {
     } else {
       // 清除自定义校验信息，避免后续无法提交
       apiKeyInputField.setCustomValidity('');
+    }
+    
+    // 特别验证：如果使用OpenRouter且选择了排序选项，必须有API Key
+    if (endpointVal.toLowerCase().includes('openrouter') && openrouterSortVal && !apiKeyVal) {
+      apiKeyInputField.setCustomValidity('使用 OpenRouter 排序功能必须配置 API Key。');
+      apiKeyInputField.reportValidity();
+      apiKeyInputField.focus();
+      return;
     }
 
     const statusBtn = document.getElementById('status-btn');
@@ -219,15 +239,18 @@ import {
     const apiKeyInput = document.getElementById('apiKey');
     const aiModelInput = document.getElementById('aiModel');
     const aiEndpointInput = document.getElementById('aiEndpoint');
+    const openrouterSortSelect = document.getElementById('openrouterSort');
 
     const apiKey = apiKeyInput.value.trim();
     const model = aiModelInput.value.trim();
     const endpoint = aiEndpointInput.value.trim();
+    const openrouterSort = openrouterSortSelect.value.trim();
 
     // 持久化到 localStorage
     localStorage.setItem('divination_api_key', apiKey);
     localStorage.setItem('divination_ai_model', model);
     localStorage.setItem('divination_ai_endpoint', endpoint);
+    localStorage.setItem('divination_openrouter_sort', openrouterSort);
 
     let finalAnswer = '';
     let finalTitle = '';
@@ -247,6 +270,7 @@ import {
           apiKey,
           model,
           endpoint,
+          openrouterSort,
           hexagram,  // 添加本地生成的卦象
           fullBazi   // 添加本地生成的时间信息
         })
@@ -392,6 +416,17 @@ import {
       toggleReasoningCollapse();
     });
     document.getElementById('status-btn').addEventListener('click', handleStatusButtonClick);
+    
+    // 监听AI端点输入变化
+    document.getElementById('aiEndpoint').addEventListener('input', (e) => {
+      const endpoint = e.target.value.toLowerCase();
+      const openrouterSortSelect = document.getElementById('openrouterSort');
+      if (endpoint.includes('openrouter')) {
+        openrouterSortSelect.style.display = 'block';
+      } else {
+        openrouterSortSelect.style.display = 'none';
+      }
+    });
     
     // 初始化历史记录模块
     initHistory({

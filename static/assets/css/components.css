@@ -74,6 +74,10 @@
   border-radius: 6px;
   color: var(--text-color);
   font-size: 0.875rem;
+  /* 确保高度一致性 */
+  height: 44px;
+  line-height: 1.5;
+  box-sizing: border-box;
 }
 .ai-settings__input:focus {
   outline: none;
@@ -81,6 +85,53 @@
 }
 .ai-settings__input::placeholder {
   color: var(--text-muted-color);
+}
+
+/* AI设置端点行 */
+.ai-settings__endpoint-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ai-settings__input--endpoint {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.ai-settings__select {
+  flex: 0 0 auto;
+  padding: 0.75rem 0.5rem;
+  margin-bottom: 0;
+  background-color: var(--secondary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+  /* iOS特定样式修复 */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  /* 添加自定义下拉箭头 */
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23999999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.2em;
+  padding-right: 2.5rem;
+  /* 确保高度与输入框一致 */
+  height: 44px;
+  line-height: 1.5;
+}
+
+.ai-settings__select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+/* 为最后一个输入框添加底部边距 */
+.ai-settings__endpoint-row {
+  margin-bottom: 0.75rem;
 }
 
 /* 表单操作区 */
@@ -548,7 +599,31 @@
   }
 
   .number-inputs__item input {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* iOS特定样式修复 */
+@supports (-webkit-touch-callout: none) {
+  /* 针对iOS Safari的特定样式 */
+  .ai-settings__input,
+  .ai-settings__select {
+    /* 统一使用相同的内边距和高度计算方式 */
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    height: auto;
+    min-height: 44px;
+  }
+  
+  /* 确保端点行中的元素垂直对齐 */
+  .ai-settings__endpoint-row {
+    align-items: stretch;
+  }
+  
+  /* 修复select元素在iOS上的额外内边距 */
+  .ai-settings__select {
+    text-indent: 0.01px;
+    text-overflow: '';
   }
 } 

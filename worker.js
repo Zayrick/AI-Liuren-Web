@@ -119,7 +119,7 @@ async function generateTitle({ question, usedApiKey, usedEndpoint, titleModel, w
  * @param {Record<string,string>}   env    - Cloudflare 环境变量
  * @return {Promise<Response>} SSE Response
  */
-async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, hexagram, fullBazi }, env) {
+async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi }, env) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -162,9 +162,11 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
           stream: true
         };
 
-        if (usedEndpoint.includes('openrouter') && env.OPENROUTER_SORT) {
+        // 使用用户传递的openrouterSort或环境变量中的值
+        const sortOption = openrouterSort || env.OPENROUTER_SORT;
+        if (usedEndpoint.includes('openrouter') && sortOption) {
           requestBody.provider = {
-            sort: env.OPENROUTER_SORT
+            sort: sortOption
           };
         }
 
@@ -275,7 +277,7 @@ async function handleDivinationAPI(request, env) {
       return new Response("请求体需为 JSON", { status: 400 }); 
     }
     
-    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, hexagram, fullBazi } = body || {};
+    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
@@ -288,6 +290,14 @@ async function handleDivinationAPI(request, env) {
       });
     }
     
+    // 验证OpenRouter特定要求
+    if (endpoint && endpoint.toLowerCase().includes('openrouter') && openrouterSort && !apiKey) {
+      return new Response("使用 OpenRouter 排序功能必须配置 API Key。", { 
+        status: 400,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
+    }
+    
     return streamDivination({ 
       numbers, 
       question, 
@@ -295,6 +305,7 @@ async function handleDivinationAPI(request, env) {
       apiKey, 
       model, 
       endpoint, 
+      openrouterSort,
       hexagram, 
       fullBazi 
     }, env);

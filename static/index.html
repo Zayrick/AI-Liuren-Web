@@ -110,7 +110,15 @@
           <div class="ai-settings__content" id="ai-settings-content">
             <input type="password" id="apiKey" class="ai-settings__input" placeholder="sk-xxxxxxx">
             <input type="text" id="aiModel" class="ai-settings__input" placeholder="gpt-4">
-            <input type="text" id="aiEndpoint" class="ai-settings__input" placeholder="https://api.openai.com/v1/chat/completions">
+            <div class="ai-settings__endpoint-row">
+              <input type="text" id="aiEndpoint" class="ai-settings__input ai-settings__input--endpoint" placeholder="https://api.openai.com/v1/chat/completions">
+              <select id="openrouterSort" class="ai-settings__select" style="display: none;">
+                <option value="">默认</option>
+                <option value="price">低价</option>
+                <option value="latency">稳定</option>
+                <option value="throughput">极速</option>
+              </select>
+            </div>
           </div>
         </div>
 
