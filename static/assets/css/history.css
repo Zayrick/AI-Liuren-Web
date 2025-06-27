@@ -20,7 +20,7 @@
   transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.6s;
   display: flex;
   flex-direction: column;
-  box-shadow: 4px 0px 25px var(--color-black-30); /* 增强阴影效果 */
+  /* box-shadow: 4px 0px 25px var(--color-black-30); */ /* 增强阴影效果 */
   visibility: hidden; /* 隐藏时不可见 */
 }
 
