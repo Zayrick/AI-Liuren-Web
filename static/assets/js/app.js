@@ -141,10 +141,11 @@ import {
     const statusBtn = document.getElementById('status-btn');
     const statusIcon = statusBtn.querySelector('span');
 
-    // 立即更新图标为"新建会话"并禁用，防止在生成期间操作
-    statusIcon.textContent = 'chat_add_on';
+    // 显示加载图标并添加旋转动画，让用户知道正在处理
+    statusIcon.textContent = 'progress_activity';
     statusIcon.style.color = ''; // 确保移除高亮
-    statusBtn.disabled = true;
+    statusBtn.classList.add('button--status-loading');
+    statusBtn.disabled = false; // 保持可用状态，但显示加载状态
 
     // 为结果区域添加激活状态类，用于控制分割线的显示
     document.querySelector('.results-area').classList.add('results-area--active');
@@ -389,8 +390,8 @@ import {
       toggleBtn.classList.remove('button--processing');
       switchToStartState();
       
-      // 恢复右上角状态按钮为可用
-      statusBtn.disabled = false;
+      // 移除状态按钮的加载状态
+      statusBtn.classList.remove('button--status-loading');
 
       // 如果思考过程已经开始，但在 stream 结束时仍未标记为完成，则在此处最终标记
       if (isReasoningStarted && !hasReasoningCompleted) {
