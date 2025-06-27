@@ -198,12 +198,14 @@ async function handleHistoryItemClick(id) {
 function initSwipeToDelete(itemEl, recordId) {
   let startX = 0;
   let currentX = 0;
+  let startY = 0;
+  let currentY = 0;
   let isDragging = false;
   let startTime = 0;
   
   const contentEl = itemEl.querySelector('.history-item__content');
   const deleteBtn = itemEl.querySelector('.history-item__delete');
-  const threshold = 50;
+  const threshold = 70;
   
   function resetSwipe() {
     itemEl.classList.remove('history-item--swiped');
@@ -221,19 +223,25 @@ function initSwipeToDelete(itemEl, recordId) {
     isDragging = true;
     startTime = Date.now();
     startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
     contentEl.style.transition = 'none';
   }
   
   function handleMove(e) {
     if (!isDragging) return;
     
-    e.preventDefault();
     currentX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+    currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+
     const deltaX = currentX - startX;
-    
-    if (deltaX < 0) {
-      const translateX = Math.max(deltaX, -80);
-      contentEl.style.transform = `translateX(${translateX}px)`;
+    const deltaY = currentY - startY;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      e.preventDefault();
+      if (deltaX < 0) {
+        const translateX = Math.max(deltaX, -80);
+        contentEl.style.transform = `translateX(${translateX}px)`;
+      }
     }
   }
   
@@ -244,9 +252,11 @@ function initSwipeToDelete(itemEl, recordId) {
     contentEl.style.transition = '';
     
     const finalX = e.type.includes('mouse') ? e.clientX : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : startX);
+    const finalY = e.type.includes('mouse') ? e.clientY : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : startY);
     const deltaX = finalX - startX;
+    const deltaY = finalY - startY;
     
-    if (Math.abs(deltaX) < 10) {
+    if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
       contentEl.style.transform = '';
       contentEl.style.transition = 'none';
       requestAnimationFrame(() => {
@@ -258,6 +268,9 @@ function initSwipeToDelete(itemEl, recordId) {
       } else {
           handleHistoryItemClick(recordId);
       }
+      return;
+    } else if (Math.abs(deltaX) < Math.abs(deltaY)) {
+      contentEl.style.transform = '';
       return;
     }
     

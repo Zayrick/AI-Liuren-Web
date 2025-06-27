@@ -12,7 +12,7 @@
   width: 85%;
   max-width: 320px;
   /* 使用更深的半透明背景，增加高级感 */
-  background-color: var(--bg-dark-900-85); /* 更深的背景色 */
+  background-color: #0f172a; /* 更深的背景色 */
   backdrop-filter: blur(var(--blur-strong)); /* 增强毛玻璃效果 */
   -webkit-backdrop-filter: blur(var(--blur-strong));
   z-index: 2000;
