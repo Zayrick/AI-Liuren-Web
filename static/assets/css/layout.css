@@ -81,9 +81,17 @@
   transition: transform 0.3s ease, padding 0.3s ease;
 }
 
-/* 键盘弹出时，优化间距 */
-.input-area:focus-within {
+/* 键盘弹出时，优化间距 - 仅对真正需要键盘的输入框生效 */
+.input-area:focus-within:has(input[type="text"]:focus),
+.input-area:focus-within:has(input[type="password"]:focus),
+.input-area:focus-within:has(input[type="number"]:focus),
+.input-area:focus-within:has(textarea:focus) {
   padding-bottom: 0.5rem;
+}
+
+/* 选择框聚焦时保持安全区域 */
+.input-area:focus-within:has(select:focus) {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
 }
 
 /* 
