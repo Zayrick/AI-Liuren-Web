@@ -109,7 +109,11 @@
           </div>
           <div class="ai-settings__content" id="ai-settings-content">
             <input type="password" id="apiKey" class="ai-settings__input" placeholder="sk-xxxxxxx">
-            <input type="text" id="aiModel" class="ai-settings__input" placeholder="gpt-4">
+            <div class="ai-settings__models-row">
+              <input type="text" id="titleModel" class="ai-settings__input ai-settings__input--model" placeholder="标题模型" title="用于生成占卜标题的模型（轻量快速）">
+              <input type="text" id="aiModel" class="ai-settings__input ai-settings__input--model" placeholder="普通模型" title="用于生成占卜结果的模型（主要模型）">
+              <input type="text" id="reasoningModel" class="ai-settings__input ai-settings__input--model" placeholder="思考模型" title="用于深度思考的模型（推理能力强）">
+            </div>
             <div class="ai-settings__endpoint-row">
               <input type="text" id="aiEndpoint" class="ai-settings__input ai-settings__input--endpoint" placeholder="https://api.openai.com/v1/chat/completions">
               <select id="openrouterSort" class="ai-settings__select" style="display: none;">

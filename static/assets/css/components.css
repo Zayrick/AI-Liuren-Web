@@ -99,6 +99,29 @@
   margin-bottom: 0;
 }
 
+/* 新增：模型设置行样式 */
+.ai-settings__models-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-settings__input--model {
+  flex: 1;
+  margin-bottom: 0;
+  min-width: 0; /* 防止 flex 子元素溢出 */
+  position: relative;
+}
+
+/* 模型输入框的 hover 提示样式 */
+.ai-settings__input--model:hover {
+  border-color: var(--accent-color-dimmed, rgba(59, 130, 246, 0.5));
+}
+
+.ai-settings__input--model:focus {
+  border-color: var(--accent-color);
+}
+
 .ai-settings__select {
   flex: 0 0 auto;
   padding: 0.75rem 0.5rem;

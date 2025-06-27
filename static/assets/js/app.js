@@ -53,12 +53,18 @@ import {
     /** @type {HTMLInputElement} */
     const aiModelInput = document.getElementById('aiModel');
     /** @type {HTMLInputElement} */
+    const titleModelInput = document.getElementById('titleModel');
+    /** @type {HTMLInputElement} */
+    const reasoningModelInput = document.getElementById('reasoningModel');
+    /** @type {HTMLInputElement} */
     const aiEndpointInput = document.getElementById('aiEndpoint');
     /** @type {HTMLSelectElement} */
     const openrouterSortSelect = document.getElementById('openrouterSort');
 
     apiKeyInput.value = localStorage.getItem('divination_api_key') || '';
     aiModelInput.value = localStorage.getItem('divination_ai_model') || '';
+    titleModelInput.value = localStorage.getItem('divination_title_model') || '';
+    reasoningModelInput.value = localStorage.getItem('divination_reasoning_model') || '';
     aiEndpointInput.value = localStorage.getItem('divination_ai_endpoint') || '';
     openrouterSortSelect.value = localStorage.getItem('divination_openrouter_sort') || '';
     
@@ -111,15 +117,19 @@ import {
     // ---------------- 输入校验：API Key 与模型/端点的依赖关系 ----------------
     const apiKeyInputField = document.getElementById('apiKey');
     const aiModelInputField = document.getElementById('aiModel');
+    const titleModelInputField = document.getElementById('titleModel');
+    const reasoningModelInputField = document.getElementById('reasoningModel');
     const aiEndpointInputField = document.getElementById('aiEndpoint');
 
     const apiKeyVal = apiKeyInputField.value.trim();
     const modelVal = aiModelInputField.value.trim();
+    const titleModelVal = titleModelInputField.value.trim();
+    const reasoningModelVal = reasoningModelInputField.value.trim();
     const endpointVal = aiEndpointInputField.value.trim();
     const openrouterSortVal = document.getElementById('openrouterSort').value.trim();
 
-    // 若用户填写了模型或端点（任意一个），则必须同时提供 API Key
-    if (!apiKeyVal && (modelVal || endpointVal)) {
+    // 若用户填写了任何模型或端点，则必须同时提供 API Key
+    if (!apiKeyVal && (modelVal || titleModelVal || reasoningModelVal || endpointVal)) {
       // 使用浏览器原生校验提示：设置 validity 并聚焦 API Key 输入框
       apiKeyInputField.setCustomValidity('如指定模型或 API 地址，则必须填写 API Key。');
       apiKeyInputField.reportValidity();
@@ -183,7 +193,7 @@ import {
     metaEl.textContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
     clearLoading(metaEl);
 
-    showLoading(reasoningEl, '等待响应中', 'thinking');
+    // 取消在推理面板预置加载占位符，只有真正收到 reasoning 数据时才显示。
     showLoading(answerEl, '等待响应中', 'thinking');
 
     /** @type {HTMLButtonElement} 单一开始/停止按钮 */
@@ -247,17 +257,23 @@ import {
     // 读取用户配置
     const apiKeyInput = document.getElementById('apiKey');
     const aiModelInput = document.getElementById('aiModel');
+    const titleModelInput = document.getElementById('titleModel');
+    const reasoningModelInput = document.getElementById('reasoningModel');
     const aiEndpointInput = document.getElementById('aiEndpoint');
     const openrouterSortSelect = document.getElementById('openrouterSort');
 
     const apiKey = apiKeyInput.value.trim();
     const model = aiModelInput.value.trim();
+    const titleModel = titleModelInput.value.trim();
+    const reasoningModel = reasoningModelInput.value.trim();
     const endpoint = aiEndpointInput.value.trim();
     const openrouterSort = openrouterSortSelect.value.trim();
 
     // 持久化到 localStorage
     localStorage.setItem('divination_api_key', apiKey);
     localStorage.setItem('divination_ai_model', model);
+    localStorage.setItem('divination_title_model', titleModel);
+    localStorage.setItem('divination_reasoning_model', reasoningModel);
     localStorage.setItem('divination_ai_endpoint', endpoint);
     localStorage.setItem('divination_openrouter_sort', openrouterSort);
 
@@ -278,6 +294,8 @@ import {
           show_reasoning: showReasoning,
           apiKey,
           model,
+          titleModel,
+          reasoningModel,
           endpoint,
           openrouterSort,
           hexagram,  // 添加本地生成的卦象
@@ -332,8 +350,6 @@ import {
               break;
             }
             case 'reasoning': {
-              if (!isReasoningEnabled()) break;
-
               // 首次收到 reasoning 数据时，移除隐藏类并清除等待状态
               if (reasoningSection.classList.contains('reasoning-section--hidden')) {
                 reasoningSection.classList.remove('reasoning-section--hidden');

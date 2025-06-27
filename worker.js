@@ -23,9 +23,13 @@
  * @property {boolean}  showReasoning      - 是否推送 AI 推理过程
  * @property {string}   apiKey             - AI API Key
  * @property {string}   model              - 模型名称
+ * @property {string}   titleModel         - 标题生成模型名称
+ * @property {string}   reasoningModel     - 思考过程模型名称
  * @property {string}   endpoint           - API 端点
+ * @property {string}   openrouterSort     - OpenRouter 排序选项
  * @property {string}   hexagram           - 前端计算的卦象
  * @property {string}   fullBazi           - 前端计算的完整八字
+ * @property {string}   currentDateTime    - 格式化的当前时间
  */
 
 // ********************************************************
@@ -119,7 +123,7 @@ async function generateTitle({ question, usedApiKey, usedEndpoint, titleModel, w
  * @param {Record<string,string>}   env    - Cloudflare 环境变量
  * @return {Promise<Response>} SSE Response
  */
-async function streamDivination({ numbers, question, showReasoning, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime }, env) {
+async function streamDivination({ numbers, question, showReasoning, apiKey, model, titleModel, reasoningModel, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime }, env) {
   const encoder = new TextEncoder();
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -128,13 +132,19 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
     try {
       // 优先使用用户提供的值，否则回退到环境变量
       const usedApiKey = (apiKey && apiKey.trim()) || env.API_KEY;
-      const usedModel =
-        (model && model.trim()) ||
-        (showReasoning && env.REASONING_MODEL
-          ? env.REASONING_MODEL
-          : env.MODEL);
+      
+      // 普通模型：用于生成占卜结果
+      const usedModel = (model && model.trim()) || env.MODEL;
+      
+      // 标题模型：用于生成占卜标题，优先使用用户设置，否则回退到环境变量或普通模型
+      const usedTitleModel = (titleModel && titleModel.trim()) || env.TITLE_MODEL || usedModel;
+      
+      // 思考模型：用于生成推理过程，优先使用用户设置
+      const usedReasoningModel = showReasoning 
+        ? ((reasoningModel && reasoningModel.trim()) || env.REASONING_MODEL || usedModel)
+        : usedModel;
+      
       const usedEndpoint = (endpoint && endpoint.trim()) || env.ENDPOINT;
-      const titleModel = (model && model.trim()) || env.TITLE_MODEL;
 
       // API Key 是必须的，无论是用户提供还是环境变量配置
       if (!usedApiKey) {
@@ -159,7 +169,7 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
         messages.push({ role: "user", content: userContent });
 
         const requestBody = {
-          model: usedModel,
+          model: showReasoning ? usedReasoningModel : usedModel,
           messages,
           max_tokens: 4096,
           reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
@@ -223,7 +233,7 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
         question,
         usedApiKey,
         usedEndpoint,
-        titleModel,
+        titleModel: usedTitleModel,
         writer,
         encoder
       });
@@ -281,13 +291,13 @@ async function handleDivinationAPI(request, env) {
       return new Response("请求体需为 JSON", { status: 400 }); 
     }
     
-    const { numbers, question, show_reasoning = true, apiKey, model, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime } = body || {};
+    const { numbers, question, show_reasoning = true, apiKey, model, titleModel, reasoningModel, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
     
     // 新增：服务器端输入校验
-    if ((model || endpoint) && !apiKey) {
+    if ((model || titleModel || reasoningModel || endpoint) && !apiKey) {
       return new Response("如指定模型或 API 地址，则必须填写 API Key。", { 
         status: 400,
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
@@ -307,7 +317,9 @@ async function handleDivinationAPI(request, env) {
       question, 
       showReasoning: show_reasoning, 
       apiKey, 
-      model, 
+      model,
+      titleModel,
+      reasoningModel,
       endpoint, 
       openrouterSort,
       hexagram, 
