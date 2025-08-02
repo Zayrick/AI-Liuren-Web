@@ -11,10 +11,8 @@
  */
 
 // -------------------- 依赖导入 --------------------
-// 卦象计算已迁移到前端，不再需要这些导入
-// import { generateHexagram } from "./lib/hexagram.js";
-// import { resolveClientTime } from "./lib/time.js";
-// import { getFullBazi } from "./lib/ganzhi.js";
+import { generateHexagram } from "./lib/hexagram.js";
+import { getFullBazi } from "./lib/ganzhi.js";
 
 /**
  * @typedef {Object} StreamDivinationParams
@@ -151,9 +149,13 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
         throw new Error("API Key 未配置，无法处理请求。请在前端设置或在后端环境变量中提供。");
       }
 
+            const computedHexagram = hexagram || generateHexagram(numbers);
+      const computedFullBazi = fullBazi || getFullBazi(new Date());
+      const computedDateTime = currentDateTime || new Date().toLocaleString("zh-CN", { hour12: false });
+
       await writer.write(
         encoder.encode(
-          `event: meta\ndata: ${JSON.stringify({ question, hexagram, time: fullBazi })}\n\n`
+          `event: meta\ndata: ${JSON.stringify({ question, hexagram: computedHexagram, time: computedFullBazi })}\n\n`
         )
       );
 
@@ -162,9 +164,9 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
         if (env.SYSTEM_PROMPT) {
           messages.push({ role: "system", content: env.SYSTEM_PROMPT });
         }
-        let userContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
-        if (currentDateTime) {
-          userContent += `\n${currentDateTime}`;
+                let userContent = `所问之事：${question}\n所得之卦：${computedHexagram}\n所占之时：${computedFullBazi}`;
+        if (computedDateTime) {
+          userContent += `\n${computedDateTime}`;
         }
         messages.push({ role: "user", content: userContent });
 

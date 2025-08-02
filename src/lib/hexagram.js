@@ -1,14 +1,15 @@
 /**
  * @file hexagram.js
- * @brief 小六壬卦象生成工具函数。
- * @details 根据三个输入数字推算"小六壬"卦象词组，算法来源于原 functions/divination.js。
+ * @brief 小六壬卦象生成工具函数（服务端）。
+ * @details 根据三个输入数字推算 "小六壬" 卦象词组。本实现与前端版本保持一致，
+ *          仅移至 Cloudflare Worker 侧以减轻客户端负担。
  *
  * @author AI
  * @date 2025-06-16
  */
 
 /**
- * @brief 根据三个数字生成卦象。
+ * 根据三个数字生成卦象。
  * @param {number[]} numbers - 长度为 3 的正整数数组。
  * @return {string} 卦象词语组合（如 "大安 小吉 空亡"）。
  */
@@ -25,4 +26,4 @@ export function generateHexagram(numbers) {
   const thirdIndex = (numbers[0] + numbers[1] + numbers[2] - 2) % 6 || 6;
 
   return `${words[firstIndex - 1]} ${words[secondIndex - 1]} ${words[thirdIndex - 1]}`;
-} 
+}

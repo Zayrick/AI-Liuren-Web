@@ -11,8 +11,7 @@
  * 所有函数均包含 Doxygen/JSDoc 风格注释，符合企业级审计要求。
  */
 import { initDB, addRecord } from './db.js';
-import { generateHexagram } from './hexagram.js';
-import { getFullBazi } from './ganzhi.js';
+
 import { initHistory, setCurrentChatId, toggleHistoryPanel } from './history.js';
 import {
   showLoading,
@@ -176,22 +175,8 @@ import {
     // 初始隐藏推理面板，只有在收到事件后且用户仍允许时再展示
     reasoningSection.classList.add('reasoning-section--hidden');
 
-    // **本地生成卦象和时间信息，立即显示给用户**
-    const now = new Date(); // 直接使用客户端本地时间
-    const fullBazi = getFullBazi(now);
-    const hexagram = generateHexagram(numbers);
-    
-    // 生成格式化的时间字符串（XXXX年XX月XX日 XX:XX）用于发送给AI
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const formattedDateTime = `${year}年${month}月${day}日 ${hours}:${minutes}`;
-    
-    // 立即显示卦象信息，减少用户等待感知（不显示formattedDateTime）
-    metaEl.textContent = `所问之事：${question}\n所得之卦：${hexagram}\n所占之时：${fullBazi}`;
-    clearLoading(metaEl);
+    // 等待服务器返回卦象与时间信息，由 meta 事件更新
+    showLoading(metaEl, '计算中');
 
     // 取消在推理面板预置加载占位符，只有真正收到 reasoning 数据时才显示。
     showLoading(answerEl, '等待响应中', 'thinking');
@@ -297,10 +282,7 @@ import {
           titleModel,
           reasoningModel,
           endpoint,
-          openrouterSort,
-          hexagram,  // 添加本地生成的卦象
-          fullBazi,  // 添加本地生成的时间信息
-          currentDateTime: formattedDateTime  // 添加格式化的当前时间（不在前端显示）
+          openrouterSort
         })
       });
 
@@ -310,8 +292,6 @@ import {
         clearLoading(answerEl);
         return;
       }
-
-      clearLoading(metaEl);
 
       const decoder = new TextDecoder('utf-8');
       const reader = resp.body.getReader();
@@ -341,6 +321,17 @@ import {
           const dataStr = dataParts.join('\n');
 
           switch (eventType) {
+            case 'meta': {
+              try {
+                const metaData = JSON.parse(dataStr);
+                const { question: q, hexagram: h, time } = metaData;
+                metaEl.textContent = `所问之事：${q}\n所得之卦：${h}\n所占之时：${time}`;
+                clearLoading(metaEl);
+              } catch (_) {
+                // 忽略解析错误
+              }
+              break;
+            }
             case 'title': {
               if (!isTitleStarted) {
                 document.querySelector('.page-header__title').textContent = '';

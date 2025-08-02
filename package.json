@@ -33,6 +33,9 @@
   ],
   "author": "Zayrick",
   "license": "MIT",
+  "dependencies": {
+    "lunar-javascript": "latest"
+  },
   "devDependencies": {
     "wrangler": "latest"
   }
