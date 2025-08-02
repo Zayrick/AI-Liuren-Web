@@ -38,7 +38,7 @@ function main() {
   // 解析路径
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  const swPath = path.resolve(__dirname, '../static/service-worker.js');
+  const swPath = path.resolve(__dirname, '../public/service-worker.js');
 
   if (!fs.existsSync(swPath)) {
     console.error('[update-cache-version] 找不到 service-worker.js:', swPath);

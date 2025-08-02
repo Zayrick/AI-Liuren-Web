@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oracloud",
+  "main": "src/index.js",
+  "compatibility_date": "2025-08-02",
+  "compatibility_flags": [
+		"global_fetch_strictly_public"
+	],
+  "vars": {
+    "OPENROUTER_SORT": "throughput",
+    "MODEL": "moonshotai/kimi-k2",
+    "TITLE_MODEL": "moonshotai/kimi-k2",
+    "REASONING_MODEL": "deepseek/deepseek-r1-0528",
+    "ENDPOINT": "https://gateway.ai.cloudflare.com/v1/9ce9598718c27c7441e2818185c1dbfa/openrouter/openrouter/v1/chat/completions"
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
