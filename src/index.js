@@ -31,10 +31,18 @@ const MIME_TYPES = {
 };
 
 /** 构造仅包含白名单字段的 Headers */
+// 构造仅包含白名单字段的 Headers，其中包含调用 AI 服务所需的自定义字段
 const buildSafeHeaders = init => {
   const safe = new Headers();
+  // 允许的 Header 白名单
+  const whitelist = [
+    "authorization",
+    "content-type",
+    "http-referer", // 供统计来源使用
+    "x-title" // 标识调用来源
+  ];
   for (const [k, v] of new Headers(init)) {
-    if (["authorization", "content-type"].includes(k.toLowerCase())) safe.append(k, v);
+    if (whitelist.includes(k.toLowerCase())) safe.append(k, v);
   }
   return safe;
 };
@@ -69,7 +77,9 @@ async function generateTitle({ question, apiKey, endpoint, model, writer }) {
     method: "POST",
     headers: buildSafeHeaders({
       Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://xl.oxiz.xyz",
+      "X-Title": "OraCloud"
     }),
     body: JSON.stringify({
       model,
@@ -172,7 +182,9 @@ async function streamDivination(params, env) {
         method: "POST",
         headers: buildSafeHeaders({
           Authorization: `Bearer ${usedApiKey}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://xl.oxiz.xyz",
+          "X-Title": "OraCloud"
         }),
         body: JSON.stringify(body)
       });
