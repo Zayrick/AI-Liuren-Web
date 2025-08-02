@@ -1,249 +1,221 @@
 /**
- * @file worker.js
- * @brief Cloudflare Worker 入口：小六壬占卜 + AI 解卦 Web 应用
- * @details 本文件作为 Cloudflare Worker 的主要入口点，负责：
- *          1. 静态资产服务（HTML、CSS、JS等）
- *          2. API 路由处理（占卜接口）
- *          3. 请求分发与处理
- *
- * @author AI
- * @date 2025-01-12
+ * Cloudflare Worker：小六壬占卜 + AI 解卦（精简版）
+ * 
+ * 主要职责：
+ * 1. 静态资源服务
+ * 2. API 路由与占卜业务
+ * 3. AI 流式 SSE 推送
  */
 
-// -------------------- 依赖导入 --------------------
 import { generateHexagram } from "./lib/hexagram.js";
 import { getFullBazi } from "./lib/ganzhi.js";
 
-/**
- * @typedef {Object} StreamDivinationParams
- * @property {number[]} numbers            - 三个数字
- * @property {string}   question           - 占卜问题
- * @property {boolean}  showReasoning      - 是否推送 AI 推理过程
- * @property {string}   apiKey             - AI API Key
- * @property {string}   model              - 模型名称
- * @property {string}   titleModel         - 标题生成模型名称
- * @property {string}   reasoningModel     - 思考过程模型名称
- * @property {string}   endpoint           - API 端点
- * @property {string}   openrouterSort     - OpenRouter 排序选项
- * @property {string}   hexagram           - 前端计算的卦象
- * @property {string}   fullBazi           - 前端计算的完整八字
- * @property {string}   currentDateTime    - 格式化的当前时间
- */
-
 // ********************************************************
-// *                    核心业务函数                      *
+// *                      工具函数                        *
 // ********************************************************
 
-/**
- * @brief 构造仅包含白名单字段的安全 Headers
- * @details 只允许 Authorization、Content-Type 两个字段，过滤 cf-*、x-forwarded-for、true-client-ip 等可能暴露访客隐私的请求头。
- * @param {HeadersInit} init - 初始 Header 集合
- * @return {Headers} 过滤后的 Headers
- */
-function buildSafeHeaders(init = {}) {
-  const whitelist = new Set(["authorization", "content-type"]);
-  const source = new Headers(init);
+/** 根据文件扩展名返回 MIME */
+const MIME_TYPES = {
+  html: "text/html; charset=utf-8",
+  css: "text/css; charset=utf-8",
+  js: "application/javascript; charset=utf-8",
+  json: "application/json; charset=utf-8",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  ico: "image/x-icon",
+  txt: "text/plain; charset=utf-8",
+  xml: "application/xml; charset=utf-8"
+};
+
+/** 构造仅包含白名单字段的 Headers */
+const buildSafeHeaders = init => {
   const safe = new Headers();
-  for (const [key, value] of source) {
-    if (whitelist.has(key.toLowerCase())) {
-      safe.append(key, value);
-    }
+  for (const [k, v] of new Headers(init)) {
+    if (["authorization", "content-type"].includes(k.toLowerCase())) safe.append(k, v);
   }
   return safe;
-}
+};
 
-async function generateTitle({ question, usedApiKey, usedEndpoint, titleModel, writer, encoder }) {
-  try {
-    const messages = [
-      {
-        role: "user",
-        content: `用简单几个字总结用户占卜的问题，总结占卜标题，显示在软件页面
-你只要输出标题，不包含任何其他内容，以及句号，内容为占问: XXX 
-用户占卜的问题是：${question}`
-      }
-    ];
-
-    const requestBody = {
-      model: titleModel,
-      messages,
-      max_tokens: 50, 
-      stream: true
-    };
-
-    const aiResp = await fetch(usedEndpoint, {
-      method: "POST",
-      headers: buildSafeHeaders({
-        Authorization: `Bearer ${usedApiKey}`,
-        "Content-Type": "application/json"
-      }),
-      body: JSON.stringify(requestBody)
-    });
-
-    if (!aiResp.ok || !aiResp.body) {
-      console.error(`Title generation failed: ${await aiResp.text()}`);
-      return;
+/** 迭代 AI SSE 流中的 data 行 */
+async function* iterateSSELines(bodyStream) {
+  const reader = bodyStream.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf("\n")) !== -1) {
+      const line = buf.slice(0, idx).trim();
+      buf = buf.slice(idx + 1);
+      if (line.startsWith("data: ")) yield line.slice(6);
     }
-
-    const reader = aiResp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-
-      let idx;
-      while ((idx = buf.indexOf("\n")) !== -1) {
-        const rawLine = buf.slice(0, idx).trim();
-        buf = buf.slice(idx + 1);
-        if (!rawLine.startsWith("data: ")) continue;
-
-        const dataStr = rawLine.slice(6);
-        if (dataStr === "[DONE]") continue;
-
-        let payload;
-        try { payload = JSON.parse(dataStr); } catch { continue; }
-        const delta = payload.choices?.[0]?.delta || {};
-        if (delta.content) {
-          await writer.write(encoder.encode(`event: title\ndata: ${delta.content.replace(/\n/g, "\\n")}\n\n`));
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Error during title generation:", err);
   }
 }
 
-/**
- * @brief SSE 流式推送小六壬解卦结果
- * @param {StreamDivinationParams} params - 业务参数
- * @param {Record<string,string>}   env    - Cloudflare 环境变量
- * @return {Promise<Response>} SSE Response
- */
-async function streamDivination({ numbers, question, showReasoning, apiKey, model, titleModel, reasoningModel, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime }, env) {
-  const encoder = new TextEncoder();
+const encoder = new TextEncoder();
+
+// ********************************************************
+// *                        AI                            *
+// ********************************************************
+
+/** 标题生成 */
+async function generateTitle({ question, apiKey, endpoint, model, writer }) {
+  const resp = await fetch(endpoint, {
+    method: "POST",
+    headers: buildSafeHeaders({
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    }),
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: "user",
+          content: `用简单几个字总结用户占卜的问题，总结占卜标题，显示在软件页面\n你只要输出标题，不包含任何其他内容，以及句号，内容为占问: XXX \n用户占卜的问题是：${question}`
+        }
+      ],
+      max_tokens: 50,
+      stream: true
+    })
+  });
+
+  if (!resp.ok || !resp.body) {
+    console.error("Title generation failed:", await resp.text());
+    return;
+  }
+
+  for await (const line of iterateSSELines(resp.body)) {
+    if (line === "[DONE]") continue;
+    let payload;
+    try {
+      payload = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const text = payload.choices?.[0]?.delta?.content;
+    if (text) {
+      await writer.write(
+        encoder.encode(`event: title\ndata: ${text.replace(/\n/g, "\\n")}\n\n`)
+      );
+    }
+  }
+}
+
+// ********************************************************
+// *                    占卜核心逻辑                      *
+// ********************************************************
+
+async function streamDivination(params, env) {
+  const {
+    numbers,
+    question,
+    showReasoning,
+    apiKey,
+    model,
+    titleModel,
+    reasoningModel,
+    endpoint,
+    openrouterSort,
+    hexagram,
+    fullBazi,
+    currentDateTime
+  } = params;
+
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
 
   (async () => {
     try {
-      // 优先使用用户提供的值，否则回退到环境变量
-      const usedApiKey = (apiKey && apiKey.trim()) || env.API_KEY;
-      
-      // 普通模型：用于生成占卜结果
-      const usedModel = (model && model.trim()) || env.MODEL;
-      
-      // 标题模型：用于生成占卜标题，优先使用用户设置，否则回退到环境变量或普通模型
-      const usedTitleModel = (titleModel && titleModel.trim()) || env.TITLE_MODEL || usedModel;
-      
-      // 思考模型：用于生成推理过程，优先使用用户设置
-      const usedReasoningModel = showReasoning 
-        ? ((reasoningModel && reasoningModel.trim()) || env.REASONING_MODEL || usedModel)
+      // ---------- 参数整理 ----------
+      const usedApiKey = apiKey?.trim() || env.API_KEY;
+      if (!usedApiKey) throw new Error("API Key 未配置");
+
+      const usedEndpoint = endpoint?.trim() || env.ENDPOINT;
+      const usedModel = model?.trim() || env.MODEL;
+      const usedTitleModel = titleModel?.trim() || env.TITLE_MODEL || usedModel;
+      const usedReasoningModel = showReasoning
+        ? reasoningModel?.trim() || env.REASONING_MODEL || usedModel
         : usedModel;
-      
-      const usedEndpoint = (endpoint && endpoint.trim()) || env.ENDPOINT;
 
-      // API Key 是必须的，无论是用户提供还是环境变量配置
-      if (!usedApiKey) {
-        throw new Error("API Key 未配置，无法处理请求。请在前端设置或在后端环境变量中提供。");
-      }
-
-            const computedHexagram = hexagram || generateHexagram(numbers);
-      const computedFullBazi = fullBazi || getFullBazi(new Date());
-      const computedDateTime = currentDateTime || new Date().toLocaleString("zh-CN", { hour12: false });
+      const h = hexagram || generateHexagram(numbers);
+      const bz = fullBazi || getFullBazi(new Date());
+      const dt = currentDateTime || new Date().toLocaleString("zh-CN", { hour12: false });
 
       await writer.write(
-        encoder.encode(
-          `event: meta\ndata: ${JSON.stringify({ question, hexagram: computedHexagram, time: computedFullBazi })}\n\n`
-        )
+        encoder.encode(`event: meta\ndata: ${JSON.stringify({ question, hexagram: h, time: bz })}\n\n`)
       );
 
-      const mainDivinationTask = (async () => {
-        const messages = [];
-        if (env.SYSTEM_PROMPT) {
-          messages.push({ role: "system", content: env.SYSTEM_PROMPT });
-        }
-                let userContent = `所问之事：${question}\n所得之卦：${computedHexagram}\n所占之时：${computedFullBazi}`;
-        if (computedDateTime) {
-          userContent += `\n${computedDateTime}`;
-        }
-        messages.push({ role: "user", content: userContent });
-
-        const requestBody = {
-          model: showReasoning ? usedReasoningModel : usedModel,
-          messages,
-          max_tokens: 4096,
-          reasoning: showReasoning ? { max_tokens: 2048 } : undefined,
-          stream: true
-        };
-
-        // 使用用户传递的openrouterSort或环境变量中的值
-        const sortOption = openrouterSort || env.OPENROUTER_SORT;
-        if (usedEndpoint.includes('openrouter') && sortOption) {
-          requestBody.provider = {
-            sort: sortOption
-          };
-        }
-
-        const aiResp = await fetch(usedEndpoint, {
-          method: "POST",
-          headers: buildSafeHeaders({
-            Authorization: `Bearer ${usedApiKey}`,
-            "Content-Type": "application/json"
-          }),
-          body: JSON.stringify(requestBody)
-        });
-
-        if (!aiResp.ok || !aiResp.body) {
-          const errText = await aiResp.text();
-          throw new Error(`AI 响应错误：${errText}`);
-        }
-
-        const reader = aiResp.body.getReader();
-        const decoder = new TextDecoder();
-        let buf = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-
-          let idx;
-          while ((idx = buf.indexOf("\n")) !== -1) {
-            const rawLine = buf.slice(0, idx).trim();
-            buf = buf.slice(idx + 1);
-            if (!rawLine.startsWith("data: ")) continue;
-
-            const dataStr = rawLine.slice(6);
-            if (dataStr === "[DONE]") continue;
-
-            let payload;
-            try { payload = JSON.parse(dataStr); } catch { continue; }
-            const delta = payload.choices?.[0]?.delta || {};
-            if (delta.reasoning) {
-              await writer.write(encoder.encode(`event: reasoning\ndata: ${delta.reasoning.replace(/\n/g, "\\n")}\n\n`));
-            }
-            if (delta.content) {
-              await writer.write(encoder.encode(`event: answer\ndata: ${delta.content.replace(/\n/g, "\\n")}\n\n`));
-            }
-          }
-        }
-      })();
-
-      const titleGenerationTask = generateTitle({
-        question,
-        usedApiKey,
-        usedEndpoint,
-        titleModel: usedTitleModel,
-        writer,
-        encoder
+      // ---------- AI 主逻辑 ----------
+      const messages = [];
+      if (env.SYSTEM_PROMPT) messages.push({ role: "system", content: env.SYSTEM_PROMPT });
+      messages.push({
+        role: "user",
+        content: `所问之事：${question}\n所得之卦：${h}\n所占之时：${bz}${dt ? `\n${dt}` : ""}`
       });
-      
-      await Promise.all([mainDivinationTask, titleGenerationTask]);
 
+      const body = {
+        model: showReasoning ? usedReasoningModel : usedModel,
+        messages,
+        max_tokens: 4096,
+        stream: true
+      };
+      if (usedEndpoint.includes("openrouter") && openrouterSort) {
+        body.provider = { sort: openrouterSort };
+      }
+
+      const aiResp = await fetch(usedEndpoint, {
+        method: "POST",
+        headers: buildSafeHeaders({
+          Authorization: `Bearer ${usedApiKey}`,
+          "Content-Type": "application/json"
+        }),
+        body: JSON.stringify(body)
+      });
+
+      if (!aiResp.ok || !aiResp.body) {
+        throw new Error(`AI 响应错误：${await aiResp.text()}`);
+      }
+
+      for await (const line of iterateSSELines(aiResp.body)) {
+        if (line === "[DONE]") continue;
+        let payload;
+        try {
+          payload = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        const delta = payload.choices?.[0]?.delta || {};
+        if (delta.reasoning) {
+          await writer.write(
+            encoder.encode(
+              `event: reasoning\ndata: ${delta.reasoning.replace(/\n/g, "\\n")}\n\n`
+            )
+          );
+        }
+        if (delta.content) {
+          await writer.write(
+            encoder.encode(`event: answer\ndata: ${delta.content.replace(/\n/g, "\\n")}\n\n`)
+          );
+        }
+      }
+
+      // ---------- 生成标题 ----------
+      await generateTitle({
+        question,
+        apiKey: usedApiKey,
+        endpoint: usedEndpoint,
+        model: usedTitleModel,
+        writer
+      });
     } catch (err) {
-      await writer.write(encoder.encode(`event: error\ndata: ${String(err).replace(/\n/g, " ")}\n\n`));
+      await writer.write(
+        encoder.encode(`event: error\ndata: ${String(err).replace(/\n/g, " ")}\n\n`)
+      );
     } finally {
       await writer.close();
     }
@@ -261,14 +233,11 @@ async function streamDivination({ numbers, question, showReasoning, apiKey, mode
   });
 }
 
-/**
- * @brief 处理占卜API请求
- * @param {Request} request - HTTP 请求对象
- * @param {Record<string,string>} env - 环境变量
- * @return {Promise<Response>} HTTP 响应
- */
+// ********************************************************
+// *                     API 路由处理                     *
+// ********************************************************
+
 async function handleDivinationAPI(request, env) {
-  // 处理 CORS 预检请求
   if (request.method === "OPTIONS") {
     return new Response(null, {
       headers: {
@@ -284,144 +253,109 @@ async function handleDivinationAPI(request, env) {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
-  // SSE 分支：前端需在 Header 加 Accept: text/event-stream
+  // 仅处理 SSE
   if (request.headers.get("Accept") === "text/event-stream") {
     let body;
-    try { 
-      body = await request.json(); 
-    } catch { 
-      return new Response("请求体需为 JSON", { status: 400 }); 
+    try {
+      body = await request.json();
+    } catch {
+      return new Response("请求体需为 JSON", { status: 400 });
     }
-    
-    const { numbers, question, show_reasoning = true, apiKey, model, titleModel, reasoningModel, endpoint, openrouterSort, hexagram, fullBazi, currentDateTime } = body || {};
+
+    const { numbers, question } = body || {};
     if (!Array.isArray(numbers) || numbers.length !== 3 || !question) {
       return new Response("参数错误：需包含 numbers(3 个) 与 question", { status: 400 });
     }
-    
-    // 新增：服务器端输入校验
-    if ((model || titleModel || reasoningModel || endpoint) && !apiKey) {
-      return new Response("如指定模型或 API 地址，则必须填写 API Key。", { 
-        status: 400,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-      });
-    }
-    
-    // 验证OpenRouter特定要求
-    if (endpoint && endpoint.toLowerCase().includes('openrouter') && openrouterSort && !apiKey) {
-      return new Response("使用 OpenRouter 排序功能必须配置 API Key。", { 
-        status: 400,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
-      });
-    }
-    
-    return streamDivination({ 
-      numbers, 
-      question, 
-      showReasoning: show_reasoning, 
-      apiKey, 
+
+    const {
       model,
       titleModel,
       reasoningModel,
-      endpoint, 
+      endpoint,
+      apiKey,
+      show_reasoning = true,
       openrouterSort,
-      hexagram, 
+      hexagram,
       fullBazi,
-      currentDateTime 
-    }, env);
+      currentDateTime
+    } = body;
+
+    if ((model || titleModel || reasoningModel || endpoint) && !apiKey) {
+      return new Response("如指定模型或 API 地址，则必须填写 API Key。", { status: 400 });
+    }
+    if (endpoint?.toLowerCase().includes("openrouter") && openrouterSort && !apiKey) {
+      return new Response("使用 OpenRouter 排序功能必须配置 API Key。", { status: 400 });
+    }
+
+    return streamDivination(
+      {
+        numbers,
+        question,
+        showReasoning: show_reasoning,
+        apiKey,
+        model,
+        titleModel,
+        reasoningModel,
+        endpoint,
+        openrouterSort,
+        hexagram,
+        fullBazi,
+        currentDateTime
+      },
+      env
+    );
   }
 
-  // 对于所有其他 POST 请求，返回错误，因为我们只支持 SSE
   return new Response(
     "不支持的请求类型。本接口仅接受 'Accept: text/event-stream' 的流式请求。",
     {
       status: 400,
-      headers: { 
+      headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "Access-Control-Allow-Origin": "*" 
+        "Access-Control-Allow-Origin": "*"
       }
     }
   );
 }
 
-/**
- * @brief 获取静态资产的 MIME 类型
- * @param {string} path - 文件路径
- * @return {string} MIME 类型
- */
-function getMimeType(path) {
-  const ext = path.split('.').pop()?.toLowerCase();
-  const mimeTypes = {
-    'html': 'text/html; charset=utf-8',
-    'css': 'text/css; charset=utf-8',
-    'js': 'application/javascript; charset=utf-8',
-    'json': 'application/json; charset=utf-8',
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'gif': 'image/gif',
-    'svg': 'image/svg+xml',
-    'ico': 'image/x-icon',
-    'txt': 'text/plain; charset=utf-8',
-    'xml': 'application/xml; charset=utf-8'
-  };
-  return mimeTypes[ext] || 'application/octet-stream';
-}
-
-
-
 // ********************************************************
-// *                    Worker 主入口                     *
+// *                     Worker 入口                      *
 // ********************************************************
 
-/**
- * @brief Cloudflare Worker 主入口函数
- * @param {Request} request - HTTP 请求对象
- * @param {Object} env - 环境变量绑定
- * @param {Object} ctx - 执行上下文
- * @return {Promise<Response>} HTTP 响应
- */
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-    const pathname = url.pathname;
 
-    // API 路由处理
-    if (pathname === '/api/divination') {
+    // API
+    if (url.pathname === "/api/divination") {
       return handleDivinationAPI(request, env);
     }
 
-    // 静态资产服务
+    // 静态资源
     try {
-      // 处理根路径，直接映射到 index.html（避免重定向）
-      let assetPath = pathname === '/' ? 'index.html' : pathname.slice(1);
-      
-      // 尝试获取静态资产
+      const assetPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
       const asset = await env.ASSETS.fetch(new Request(`${url.origin}/${assetPath}`));
-      
       if (asset.status === 200) {
-        // 克隆响应并添加适当的 headers
-        const response = new Response(asset.body, {
+        return new Response(asset.body, {
           status: asset.status,
-          statusText: asset.statusText,
           headers: {
             ...asset.headers,
-            'Content-Type': getMimeType(assetPath),
-            'Cache-Control': 'public, max-age=31536000',
-            'Access-Control-Allow-Origin': '*'
+            "Content-Type": MIME_TYPES[assetPath.split(".").pop()] || "application/octet-stream",
+            "Cache-Control": "public, max-age=31536000",
+            "Access-Control-Allow-Origin": "*"
           }
         });
-        return response;
       }
     } catch (err) {
-      console.error('静态资产服务错误:', err);
+      console.error("静态资产服务错误:", err);
     }
 
-    // 404 处理
-    return new Response('页面未找到', { 
+    // 404
+    return new Response("页面未找到", {
       status: 404,
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Access-Control-Allow-Origin': '*'
+        "Content-Type": "text/plain; charset=utf-8",
+        "Access-Control-Allow-Origin": "*"
       }
     });
   }
