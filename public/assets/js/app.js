@@ -636,7 +636,7 @@ import {
     document.getElementById('n1').value = '';
     document.getElementById('n2').value = '';
     document.getElementById('n3').value = '';
-    document.querySelector('.page-header__title').textContent = '云占小六壬';
+    document.querySelector('.page-header__title').textContent = '云占·小六壬';
     
     const metaEl = document.getElementById('output-meta');
     const answerEl = document.getElementById('output-answer');

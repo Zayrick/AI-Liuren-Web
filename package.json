@@ -1,7 +1,7 @@
 {
-  "name": "yunzhan-xiaoliuren",
+  "name": "oracloud",
   "version": "1.0.0",
-  "description": "云占小六壬：基于 Cloudflare Workers + AI 大模型的在线占卜应用，并支持 PWA。",
+  "description": "云占·小六壬：基于 Cloudflare Workers + AI 大模型的在线占卜应用，并支持 PWA。",
   "type": "module",
   "engines": {
     "node": ">=18"

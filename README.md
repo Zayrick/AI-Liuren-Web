@@ -1,4 +1,4 @@
-# 云占小六壬 – Cloudflare Workers / PWA
+# 云占·小六壬 – Cloudflare Workers / PWA
 
 > 基于 **Cloudflare Workers** ✕ **AI 大模型** 的在线占卜应用，并提供离线访问（PWA）。
 
@@ -155,4 +155,4 @@ npm run deploy     # 等价于：wrangler deploy
 
 ---
 
-> 🎉 欢迎 Issue / PR，与我们一同完善 “云占小六壬”！ 
+> 🎉 欢迎 Issue / PR，与我们一同完善 “云占·小六壬”！ 
